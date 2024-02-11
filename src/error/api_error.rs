@@ -12,6 +12,7 @@ pub struct ApiError {
     message: String,
     #[serde(default)]
     details: String,
+    #[serde(default="bool::default")]
     debug: bool,
 }
 impl ApiError {

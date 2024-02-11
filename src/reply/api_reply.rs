@@ -6,7 +6,7 @@ use serde::{Serialize, Deserialize};
 use crate::error::api_error::ApiError;
 
 ///
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct SqlReply {
     pub authToken: String,
     pub id: String,
