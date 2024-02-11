@@ -99,6 +99,11 @@ impl ApiError {
         }
     }
     ///
+    /// Returns true if no error information contains
+    pub fn is_empty(&self) -> bool {
+        self.message.is_empty() & self.details.is_empty()
+    }
+    ///
     /// 
     pub fn toString(self) -> String {
         format!("ApiError: {:?}\nerror: {:?}", self.message, self.details)

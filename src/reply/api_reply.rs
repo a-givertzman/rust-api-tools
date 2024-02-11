@@ -58,6 +58,11 @@ impl SqlReply {
             error,
         }        
     }
+    ///
+    /// 
+    pub fn hasError(&self) -> bool {
+        !self.error.is_empty()
+    }
 }
 
 
