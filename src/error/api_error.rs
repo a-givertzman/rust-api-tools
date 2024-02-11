@@ -10,6 +10,7 @@ use serde_json::json;
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 pub struct ApiError {
     message: String,
+    #[serde(default)]
     details: String,
     debug: bool,
 }
@@ -27,8 +28,8 @@ impl ApiError {
     /// 
     pub fn empty() -> Self {
         Self {
-            message: "".to_string(),
-            details: "".to_string(),
+            message: String::new(),
+            details: String::new(),
             debug: false,
         }
     }
