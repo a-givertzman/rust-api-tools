@@ -7,7 +7,7 @@ mod tests {
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
     use testing::stuff::max_test_duration::TestDuration;
     use crate::{
-        reply::api_reply::SqlReply,
+        server::reply::api_reply::SqlReply,
         error::api_error::ApiError,
     }; 
     
