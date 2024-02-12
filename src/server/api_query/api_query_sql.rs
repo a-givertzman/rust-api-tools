@@ -16,6 +16,7 @@ pub struct ApiQuerySql {
 impl ApiQuerySql {
     ///
     pub fn fromJson(jsonMap: serde_json::Value) -> Result<Self, ApiError> {
+        debug!("[ApiQuerySql.fromJson] json: {:?}", jsonMap);
         let key = "database";
         if let serde_json::Value::String(database) = &jsonMap[key] {
             debug!("[ApiQuerySql.fromJson] field '{}': {:?}", &key, &database);

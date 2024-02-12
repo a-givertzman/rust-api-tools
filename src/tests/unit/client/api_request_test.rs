@@ -81,7 +81,7 @@ mod tests {
         let keep_alive = false;
         let debug = true;
         let database = "flowers_app_server";
-        let sql = "select * from customer";
+        let sql = "select * from customer;";
         let request = ApiRequest::new(
             selfId,
             addtess,
