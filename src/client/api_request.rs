@@ -25,7 +25,9 @@ use crate::client::api_query::ApiQuery;
 pub struct ApiRequest {
     id: String,
     address: SocketAddr,
+    auth_token: String,
     query: ApiQuery,
+    debug: bool,
 }
 ///
 /// 
@@ -33,8 +35,8 @@ impl ApiRequest {
     ///
     /// Creates new instance of [ApiRequest]
     /// - [parent] - the ID if the parent entity
-    pub fn new(parent: impl Into<String>, query: ApiQuery, address: impl ToSocketAddrs + std::fmt::Debug) -> Self {
-        let addr = match address.to_socket_addrs() {
+    pub fn new(parent: impl Into<String>, address: impl ToSocketAddrs + std::fmt::Debug, auth_token: impl Into<String>, query: ApiQuery, debug: bool) -> Self {
+        let address = match address.to_socket_addrs() {
             Ok(mut addrIter) => {
                 match addrIter.next() {
                     Some(addr) => addr,
@@ -46,17 +48,19 @@ impl ApiRequest {
 
         Self {
             id: format!("{}/ApiRequest", parent.into()),
-            address: addr,
+            address,
+            auth_token: auth_token.into(),
             query,
+            debug,
         }
     }
     ///
     /// Writing sql string to the TcpStream
-    fn fetch(&self, sql: String) -> Result<(), String>{
+    pub fn fetch(&self, sql: &str, keep_alive: bool) -> Result<(), String>{
         match TcpStream::connect(self.address) {
             Ok(mut stream) => {
                 info!("{}.send | connected to: \n\t{:?}", self.id, stream);
-                let query = ApiQuery::new("authToken", "id", "database", sql, true, true);
+                let query = ApiQuery::new("id", "database", sql, keep_alive);
                 match stream.write(query.toJson().as_bytes()) {
                     Ok(_) => Ok(()),
                     Err(err) => {
