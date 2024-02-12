@@ -4,6 +4,8 @@ use std::collections::HashMap;
 
 use serde::Serialize;
 
+use crate::server::api_query::api_query_type::ApiQueryType;
+
 ///
 /// Wrap a structure of an API query
 /// {
@@ -16,9 +18,9 @@ use serde::Serialize;
 /// }
 #[derive(Serialize)]    // , Deserialize
 pub struct ApiQuery {
-    id: String,
-    sql:  HashMap<String, String>,
-    keep_alive: bool,
+    pub id: String,
+    pub query: ApiQueryType,
+    pub keep_alive: bool,
 }
 ///
 /// 
@@ -28,27 +30,24 @@ impl ApiQuery {
     pub fn new(
         // authToken: impl Into<String>,
         id: impl Into<String>,
-        database: impl Into<String>,
-        sql: impl Into<String>,
+        query: ApiQueryType,
         keep_alive: bool,
     ) -> Self {
         Self {
             id: id.into(),
-            sql: HashMap::from([
-                ("database".to_string(), database.into()),
-                ("sql".to_string(), sql.into()),
-            ]),
+            query,
             keep_alive,
         }
     }
     ///
     /// 
     pub fn with_sql(&self, sql: &str, keep_alive: bool) -> Self {
-        let mut selfSql = self.sql.clone();
+        let mut selfSql = self.query.clone();
         selfSql.insert("sql".into(), sql.into());
         Self {
-            id: self.id.clone(),
-            sql: selfSql,
+            id: self.id,
+            database: self.database,
+            query: selfSql,
             keep_alive,
         }
     }

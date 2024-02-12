@@ -1,6 +1,7 @@
 #![allow(non_snake_case)]
 
 use log::{info, debug, warn};
+use serde::Serialize;
 use std::{collections::HashMap, io::{Read, Write}, net::{SocketAddr, TcpStream, ToSocketAddrs}};
 
 use crate::client::api_query::ApiQuery;
@@ -60,17 +61,20 @@ impl ApiRequest {
             Ok(mut stream) => {
                 info!("{}.send | connected to: \n\t{:?}", self.id, stream);
                 let query = self.query.with_sql(sql, keep_alive);
-                let query = HashMap::from([
-                    ("authToken", self.auth_token.clone()),
-                    ("id", self.id.clone()),
-                    ("keepAlive", keep_alive.to_string()),
-                    ("debug", self.debug.to_string()),
-                    ("sql", query.toJson())
+                let query = ApiRequestStruct {
+                    authToken: self.auth_token.clone(),
+                    id: query.id.clone(),
+                    keepAlive: keep_alive,
+                    debug: self.debug,
+                    sql: ApiRequestSql {
+                        database: query.database,
+                        sql: query.query, 
+                    },
                     // 'sql': {
                     //   'database': query.sql.database,
                     //   'sql': query.sql.sql,
                     // },
-                ]);
+                };
                 // let query = ApiQuery::new("id", "database", sql, keep_alive);
                 match serde_json::to_string(&query) {
                     Ok(query) => {
@@ -175,4 +179,20 @@ impl ApiRequest {
             };
         }
     }
+}
+
+///
+/// 
+#[derive(Serialize)]    // , Deserialize
+struct ApiRequestStruct {
+    id: String,
+    authToken: String,
+    keepAlive: bool,
+    sql: ApiRequestSql,
+    debug: bool,
+}
+#[derive(Serialize)]    // , Deserialize
+struct ApiRequestSql {
+    database: String,
+    sql: String,
 }
