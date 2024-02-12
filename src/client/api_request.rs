@@ -56,13 +56,15 @@ impl ApiRequest {
     }
     ///
     /// Writing sql string to the TcpStream
-    pub fn fetch(&self, sql: &str, keep_alive: bool) -> Result<(), String>{
+    pub fn fetch(&self, sql: &str, keep_alive: bool) -> Result<Vec<u8>, String>{
         match TcpStream::connect(self.address) {
             Ok(mut stream) => {
                 info!("{}.send | connected to: \n\t{:?}", self.id, stream);
-                let query = ApiQuery::new("id", "database", sql, keep_alive);
-                match stream.write(query.toJson().as_bytes()) {
-                    Ok(_) => Ok(()),
+                // let query = ApiQuery::new("id", "database", sql, keep_alive);
+                match stream.write(self.query.toJson().as_bytes()) {
+                    Ok(_) => {
+                        Self::readAll(&self.id, &mut stream)
+                    },
                     Err(err) => {
                         let message = format!("{}.send | write to tcp stream error: {:?}", self.id, err);
                         warn!("{}", message);
@@ -86,71 +88,71 @@ impl ApiRequest {
     // /// - returns Closed:
     // ///    - if read 0 bytes
     // ///    - if on error
-    // fn readAll(selfId: &str, stream: &mut TcpStream) -> ConnectionStatus<Vec<u8>, String> {
-    //     let mut buf = [0; Self::BUF_LEN];
-    //     let mut result = vec![];
-    //     loop {
-    //         match stream.read(&mut buf) {
-    //             Ok(len) => {
-    //                 debug!("{}.readAll |     read len: {:?}", selfId, len);
-    //                 result.append(& mut buf[..len].into());
-    //                 if len < Self::BUF_LEN {
-    //                     if len == 0 {
-    //                         return ConnectionStatus::Closed(format!("{}.readAll | tcp stream closed", selfId));
-    //                     } else {
-    //                         return ConnectionStatus::Active(result)
-    //                     }
-    //                 }
-    //             },
-    //             Err(err) => {
-    //                 warn!("{}.readAll | error reading from socket: {:?}", selfId, err);
-    //                 warn!("{}.readAll | error kind: {:?}", selfId, err.kind());
-    //                 let status = ConnectionStatus::Closed(format!("{}.readAll | tcp stream error: {:?}", selfId, err));
-    //                 return match err.kind() {
-    //                     std::io::ErrorKind::NotFound => status,
-    //                     std::io::ErrorKind::PermissionDenied => status,
-    //                     std::io::ErrorKind::ConnectionRefused => status,
-    //                     std::io::ErrorKind::ConnectionReset => status,
-    //                     // std::io::ErrorKind::HostUnreachable => status,
-    //                     // std::io::ErrorKind::NetworkUnreachable => status,
-    //                     std::io::ErrorKind::ConnectionAborted => status,
-    //                     std::io::ErrorKind::NotConnected => status,
-    //                     std::io::ErrorKind::AddrInUse => status,
-    //                     std::io::ErrorKind::AddrNotAvailable => status,
-    //                     // std::io::ErrorKind::NetworkDown => status,
-    //                     std::io::ErrorKind::BrokenPipe => status,
-    //                     std::io::ErrorKind::AlreadyExists => status,
-    //                     std::io::ErrorKind::WouldBlock => status,
-    //                     // std::io::ErrorKind::NotADirectory => todo!(),
-    //                     // std::io::ErrorKind::IsADirectory => todo!(),
-    //                     // std::io::ErrorKind::DirectoryNotEmpty => todo!(),
-    //                     // std::io::ErrorKind::ReadOnlyFilesystem => todo!(),
-    //                     // std::io::ErrorKind::FilesystemLoop => todo!(),
-    //                     // std::io::ErrorKind::StaleNetworkFileHandle => todo!(),
-    //                     std::io::ErrorKind::InvalidInput => status,
-    //                     std::io::ErrorKind::InvalidData => status,
-    //                     std::io::ErrorKind::TimedOut => status,
-    //                     std::io::ErrorKind::WriteZero => status,
-    //                     // std::io::ErrorKind::StorageFull => todo!(),
-    //                     // std::io::ErrorKind::NotSeekable => todo!(),
-    //                     // std::io::ErrorKind::FilesystemQuotaExceeded => todo!(),
-    //                     // std::io::ErrorKind::FileTooLarge => todo!(),
-    //                     // std::io::ErrorKind::ResourceBusy => todo!(),
-    //                     // std::io::ErrorKind::ExecutableFileBusy => todo!(),
-    //                     // std::io::ErrorKind::Deadlock => todo!(),
-    //                     // std::io::ErrorKind::CrossesDevices => todo!(),
-    //                     // std::io::ErrorKind::TooManyLinks => todo!(),
-    //                     // std::io::ErrorKind::InvalidFilename => todo!(),
-    //                     // std::io::ErrorKind::ArgumentListTooLong => todo!(),
-    //                     std::io::ErrorKind::Interrupted => status,
-    //                     std::io::ErrorKind::Unsupported => status,
-    //                     std::io::ErrorKind::UnexpectedEof => status,
-    //                     std::io::ErrorKind::OutOfMemory => status,
-    //                     std::io::ErrorKind::Other => status,
-    //                     _ => status,
-    //                 }
-    //             },
-    //         };
-    //     }
-    // }    
+    fn readAll(selfId: &str, stream: &mut TcpStream) -> Result<Vec<u8>, String> {
+        let mut buf = [0; Self::BUF_LEN];
+        let mut result = vec![];
+        loop {
+            match stream.read(&mut buf) {
+                Ok(len) => {
+                    debug!("{}.readAll |     read len: {:?}", selfId, len);
+                    result.append(& mut buf[..len].into());
+                    if len < Self::BUF_LEN {
+                        if len == 0 {
+                            return Err(format!("{}.readAll | tcp stream closed", selfId));
+                        } else {
+                            return Ok(result)
+                        }
+                    }
+                },
+                Err(err) => {
+                    warn!("{}.readAll | error reading from socket: {:?}", selfId, err);
+                    warn!("{}.readAll | error kind: {:?}", selfId, err.kind());
+                    let status = Err(format!("{}.readAll | tcp stream error: {:?}", selfId, err));
+                    return match err.kind() {
+                        std::io::ErrorKind::NotFound => status,
+                        std::io::ErrorKind::PermissionDenied => status,
+                        std::io::ErrorKind::ConnectionRefused => status,
+                        std::io::ErrorKind::ConnectionReset => status,
+                        // std::io::ErrorKind::HostUnreachable => status,
+                        // std::io::ErrorKind::NetworkUnreachable => status,
+                        std::io::ErrorKind::ConnectionAborted => status,
+                        std::io::ErrorKind::NotConnected => status,
+                        std::io::ErrorKind::AddrInUse => status,
+                        std::io::ErrorKind::AddrNotAvailable => status,
+                        // std::io::ErrorKind::NetworkDown => status,
+                        std::io::ErrorKind::BrokenPipe => status,
+                        std::io::ErrorKind::AlreadyExists => status,
+                        std::io::ErrorKind::WouldBlock => status,
+                        // std::io::ErrorKind::NotADirectory => todo!(),
+                        // std::io::ErrorKind::IsADirectory => todo!(),
+                        // std::io::ErrorKind::DirectoryNotEmpty => todo!(),
+                        // std::io::ErrorKind::ReadOnlyFilesystem => todo!(),
+                        // std::io::ErrorKind::FilesystemLoop => todo!(),
+                        // std::io::ErrorKind::StaleNetworkFileHandle => todo!(),
+                        std::io::ErrorKind::InvalidInput => status,
+                        std::io::ErrorKind::InvalidData => status,
+                        std::io::ErrorKind::TimedOut => status,
+                        std::io::ErrorKind::WriteZero => status,
+                        // std::io::ErrorKind::StorageFull => todo!(),
+                        // std::io::ErrorKind::NotSeekable => todo!(),
+                        // std::io::ErrorKind::FilesystemQuotaExceeded => todo!(),
+                        // std::io::ErrorKind::FileTooLarge => todo!(),
+                        // std::io::ErrorKind::ResourceBusy => todo!(),
+                        // std::io::ErrorKind::ExecutableFileBusy => todo!(),
+                        // std::io::ErrorKind::Deadlock => todo!(),
+                        // std::io::ErrorKind::CrossesDevices => todo!(),
+                        // std::io::ErrorKind::TooManyLinks => todo!(),
+                        // std::io::ErrorKind::InvalidFilename => todo!(),
+                        // std::io::ErrorKind::ArgumentListTooLong => todo!(),
+                        std::io::ErrorKind::Interrupted => status,
+                        std::io::ErrorKind::Unsupported => status,
+                        std::io::ErrorKind::UnexpectedEof => status,
+                        std::io::ErrorKind::OutOfMemory => status,
+                        std::io::ErrorKind::Other => status,
+                        _ => status,
+                    }
+                },
+            };
+        }
+    }
 }

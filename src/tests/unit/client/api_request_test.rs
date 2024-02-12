@@ -7,7 +7,7 @@ mod tests {
     use std::sync::Once;
     use serde_json::json;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::client::{api_query::ApiQuery, api_request::ApiRequest};
+    use crate::client::{api_query::ApiQuery, api_reply::ApiReply, api_request::ApiRequest};
     
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     // use super::*;
@@ -75,11 +75,12 @@ mod tests {
         //     let target = json!(target);
         //     assert!(json.as_object() == target.as_object(), "\n  json: {:?}\ntarget: {:?}", json, target);
         // }
-        let port = TestSession::free_tcp_port_str();
+        let port = "8080";     //TestSession::free_tcp_port_str();
         let addtess = format!("127.0.0.1:{}", port);
         let token = "auth-token";
         let keep_alive = false;
-        let debug = false;
+        let debug = true;
+        let database = "flowers_app_server";
         let sql = "select * from customer";
         let request = ApiRequest::new(
             selfId,
@@ -87,21 +88,30 @@ mod tests {
             token, 
             ApiQuery::new(
                 "001", 
-                "database", 
+                database, 
                 sql, 
                 keep_alive, 
             ),
             debug,
         );
-        let reply = request.fetch(sql, keep_alive);
+        match request.fetch(sql, keep_alive) {
+            Ok(bytes) => {
+                let reply = ApiReply::try_from(bytes);
+                println!("reply: {:?}", reply);
+            },
+            Err(err) => {
+                panic!("{} | Error: {:?}", selfId, err);
+            },
+        };
+
     }
     
-    struct ApiQueryStruct {
-        authToken: String,
-        id: String,
-        database: String,
-        sql: String,
-        keepAlive: bool,
-        debug: bool,
-    }
+    // struct ApiQueryStruct {
+    //     authToken: String,
+    //     id: String,
+    //     database: String,
+    //     sql: String,
+    //     keepAlive: bool,
+    //     debug: bool,
+    // }
 }

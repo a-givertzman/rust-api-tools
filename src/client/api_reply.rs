@@ -8,11 +8,11 @@ use crate::error::api_error::ApiError;
 ///
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct ApiReply {
-    pub authToken: String,
     pub id: String,
-    pub keepAlive: bool,
+    pub authToken: String,
     pub query: String,
-    pub data: Vec<IndexMap<String, serde_json::Value>>,
+    pub data: serde_json::Value,     //Vec<IndexMap<String, serde_json::Value>>,
+    pub keepAlive: bool,
     pub error: ApiError,
 
 }
@@ -32,6 +32,7 @@ impl ApiReply {
     //     self.error.push_str(err.as_str());
     // }
     ///
+    /// 
     pub fn asBytes(&self) -> Vec<u8> {
         let result = serde_json::to_string(&self);
         match result {
@@ -54,7 +55,7 @@ impl ApiReply {
             id,
             keepAlive,
             query,
-            data: vec![],
+            data:  serde_json::Value::Null, //vec![],
             error,
         }        
     }
@@ -65,6 +66,17 @@ impl ApiReply {
     }
 }
 
+impl TryFrom<Vec<u8>> for ApiReply {
+    type Error = String;
+    fn try_from(bytes: Vec<u8>) -> Result<Self, String> {
+        match serde_json::from_slice(&bytes) {
+            Ok(value) => {
+                Ok(value)
+            },
+            Err(err) => Err(format!("ApiReply.try_from | Error: {:?}", err)),
+        }
+    }
+}
 
 // #[derive(Debug)]
 // struct Value(rusqlite::types::Value);

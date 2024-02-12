@@ -7,21 +7,18 @@ use serde::Serialize;
 ///
 /// Wrap a structure of an API query
 /// {
-///     "auth_token": "123zxy456!@#",
 ///     "id": "123",
-///     "keep-alive": true,
 ///     "sql": {
 ///         "database": "database name",
 ///         "sql": "Some valid sql query"
 ///     },
-///     "debug": false
+///     "keep-alive": true,
 /// }
 #[derive(Serialize)]    // , Deserialize
 pub struct ApiQuery {
     id: String,
     sql:  HashMap<String, String>,
-    keepAlive: bool,
-    // debug: bool,
+    keep_alive: bool,
 }
 ///
 /// 
@@ -33,18 +30,26 @@ impl ApiQuery {
         id: impl Into<String>,
         database: impl Into<String>,
         sql: impl Into<String>,
-        keepAlive: bool,
-        // debug: bool
+        keep_alive: bool,
     ) -> Self {
         Self {
-            // authToken: authToken.into(),
             id: id.into(),
             sql: HashMap::from([
                 ("database".to_string(), database.into()),
                 ("sql".to_string(), sql.into()),
             ]),
-            keepAlive,
-            // debug,
+            keep_alive,
+        }
+    }
+    ///
+    /// 
+    pub fn with_sql(&self, sql: String, keep_alive: bool) -> Self {
+        let mut selfSql = self.sql.clone();
+        selfSql.insert("sql".into(), sql);
+        Self {
+            id: self.id.clone(),
+            sql: selfSql,
+            keep_alive,
         }
     }
     ///
