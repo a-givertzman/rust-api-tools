@@ -6,7 +6,7 @@ mod tests {
     use std::sync::Once;
     use serde_json::json;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::client::api_query::ApiQuery;
+    use crate::{client::api_query::ApiQuery, server::api_query::{api_query_sql::ApiQuerySql, api_query_type::ApiQueryType}};
     
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     // use super::*;
@@ -58,8 +58,10 @@ mod tests {
         for (value, target) in testData {
             let query = ApiQuery::new(
                 value.id,
-                value.database,
-                value.sql,
+                ApiQueryType::Sql(ApiQuerySql {
+                    database: value.database,
+                    sql: value.sql,
+                }),
                 value.keepAlive,
             );
             let json = query.toJson().to_string();
