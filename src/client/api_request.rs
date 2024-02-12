@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use log::{info, debug, warn};
-use std::{io::{Read, Write}, net::{SocketAddr, TcpStream, ToSocketAddrs}};
+use std::{collections::HashMap, io::{Read, Write}, net::{SocketAddr, TcpStream, ToSocketAddrs}};
 
 use crate::client::api_query::ApiQuery;
 
@@ -45,7 +45,6 @@ impl ApiRequest {
             },
             Err(err) => panic!("TcpClientConnect({}).connect | Address parsing error: \n\t{:?}", parent.into(), err),
         };
-
         Self {
             id: format!("{}/ApiRequest", parent.into()),
             address,
@@ -60,13 +59,34 @@ impl ApiRequest {
         match TcpStream::connect(self.address) {
             Ok(mut stream) => {
                 info!("{}.send | connected to: \n\t{:?}", self.id, stream);
+                let query = self.query.with_sql(sql, keep_alive);
+                let query = HashMap::from([
+                    ("authToken", self.auth_token.clone()),
+                    ("id", self.id.clone()),
+                    ("keepAlive", keep_alive.to_string()),
+                    ("debug", self.debug.to_string()),
+                    ("sql", query.toJson())
+                    // 'sql': {
+                    //   'database': query.sql.database,
+                    //   'sql': query.sql.sql,
+                    // },
+                ]);
                 // let query = ApiQuery::new("id", "database", sql, keep_alive);
-                match stream.write(self.query.toJson().as_bytes()) {
-                    Ok(_) => {
-                        Self::readAll(&self.id, &mut stream)
+                match serde_json::to_string(&query) {
+                    Ok(query) => {
+                        match stream.write(query.as_bytes()) {
+                            Ok(_) => {
+                                Self::readAll(&self.id, &mut stream)
+                            },
+                            Err(err) => {
+                                let message = format!("{}.send | write to tcp stream error: {:?}", self.id, err);
+                                warn!("{}", message);
+                                Err(message)
+                            },
+                        }
                     },
                     Err(err) => {
-                        let message = format!("{}.send | write to tcp stream error: {:?}", self.id, err);
+                        let message = format!("{}.send | Error: {:?}", self.id, err);
                         warn!("{}", message);
                         Err(message)
                     },

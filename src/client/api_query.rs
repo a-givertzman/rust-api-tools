@@ -43,9 +43,9 @@ impl ApiQuery {
     }
     ///
     /// 
-    pub fn with_sql(&self, sql: String, keep_alive: bool) -> Self {
+    pub fn with_sql(&self, sql: &str, keep_alive: bool) -> Self {
         let mut selfSql = self.sql.clone();
-        selfSql.insert("sql".into(), sql);
+        selfSql.insert("sql".into(), sql.into());
         Self {
             id: self.id.clone(),
             sql: selfSql,
