@@ -12,7 +12,7 @@ pub struct SqlReply {
     pub id: String,
     pub keepAlive: bool,
     pub query: String,
-    pub data: Vec<IndexMap<String, serde_json::Value>>, //Vec<(String, Option<String>)>,
+    pub data: Vec<IndexMap<String, serde_json::Value>>,
     pub error: ApiError,
 
 }

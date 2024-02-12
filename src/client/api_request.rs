@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
-use log::{info, debug, trace, warn};
-use std::{collections::HashMap, io::{Read, Write}, net::{SocketAddr, TcpStream, ToSocketAddrs}, sync::{atomic::{AtomicBool, Ordering}, mpsc::{self, Receiver, Sender}, Arc}, thread::{self, JoinHandle}, time::Duration};
+use log::{info, debug, warn};
+use std::{io::{Read, Write}, net::{SocketAddr, TcpStream, ToSocketAddrs}};
 
 use crate::client::api_query::ApiQuery;
 
@@ -10,9 +10,21 @@ use crate::client::api_query::ApiQuery;
 /// - Received string messages pops from the queue into the end of local buffer
 /// - Sending messages (wrapped into ApiQuery) from the beginning of the buffer
 /// - Sent messages immediately removed from the buffer
+/// ```
+/// ApiRequest::new(
+///    address,
+///    auth_token,
+///    ApiQuerySql::new(
+///       database,
+///       sql,
+///       keep_alive,
+///    ),
+///    debug,
+/// )
+/// ```
 pub struct ApiRequest {
     id: String,
-    addr: SocketAddr,
+    address: SocketAddr,
     query: ApiQuery,
 }
 ///
@@ -21,12 +33,12 @@ impl ApiRequest {
     ///
     /// Creates new instance of [ApiRequest]
     /// - [parent] - the ID if the parent entity
-    pub fn new(parent: impl Into<String>, query: ApiQuery, addr: impl ToSocketAddrs + std::fmt::Debug) -> Self {
-        let addr = match addr.to_socket_addrs() {
+    pub fn new(parent: impl Into<String>, query: ApiQuery, address: impl ToSocketAddrs + std::fmt::Debug) -> Self {
+        let addr = match address.to_socket_addrs() {
             Ok(mut addrIter) => {
                 match addrIter.next() {
                     Some(addr) => addr,
-                    None => panic!("TcpClientConnect({}).connect | Empty address found: {:?}", parent.into(), addr),
+                    None => panic!("TcpClientConnect({}).connect | Empty address found: {:?}", parent.into(), address),
                 }
             },
             Err(err) => panic!("TcpClientConnect({}).connect | Address parsing error: \n\t{:?}", parent.into(), err),
@@ -34,14 +46,14 @@ impl ApiRequest {
 
         Self {
             id: format!("{}/ApiRequest", parent.into()),
-            addr,
+            address: addr,
             query,
         }
     }
     ///
     /// Writing sql string to the TcpStream
-    fn send(&self, sql: String) -> Result<(), String>{
-        match TcpStream::connect(self.addr) {
+    fn fetch(&self, sql: String) -> Result<ApiReply, String>{
+        match TcpStream::connect(self.address) {
             Ok(mut stream) => {
                 info!("{}.send | connected to: \n\t{:?}", self.id, stream);
                 let query = ApiQuery::new("authToken", "id", "database", sql, true, true);
