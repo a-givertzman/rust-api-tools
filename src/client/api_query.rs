@@ -4,7 +4,6 @@ use serde::Serialize;
 /// Client side API query structure
 #[derive(Debug, Clone, Serialize)]    // , Deserialize
 pub struct ApiQuery {
-    // pub id: String,
     pub query: ApiQueryKind,
     #[serde(skip_serializing)]
     pub keep_alive: bool,
@@ -15,9 +14,8 @@ impl ApiQuery {
     ///
     /// 
     /// Creates new instance of ApiQuery
-    pub fn new(id: impl Into<String>, query: ApiQueryKind, keep_alive: bool) -> Self {
+    pub fn new(query: ApiQueryKind, keep_alive: bool) -> Self {
         Self {
-            // id: id.into(),
             query,
             keep_alive,
         }

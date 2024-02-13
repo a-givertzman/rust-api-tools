@@ -83,11 +83,16 @@ mod tests {
         let debug = false;
         let database = "flowers_app_server";
         let sql = "select * from customer;";
-        let query = ApiQuery::new(
-            "001", 
-            ApiQueryKind::Sql(ApiQuerySql::new(database, sql)),
-            sql_keep_alive, 
-        );
+        let test_data = [
+            (
+                ApiQuery::new(
+                    ApiQueryKind::Sql(ApiQuerySql::new(database, sql)),
+                    sql_keep_alive, 
+                ),
+                r#""#,
+            )
+        ];
+        let query = ;
         let mut request = ApiRequest::new(
             selfId,
             addtess,

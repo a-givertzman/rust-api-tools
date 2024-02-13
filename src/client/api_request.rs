@@ -2,7 +2,7 @@
 
 use log::{info, debug, warn};
 use serde::{ser::SerializeStruct, Serialize, Serializer};
-use std::{io::{Read, Write}, net::{SocketAddr, TcpStream, ToSocketAddrs}, ops::Add};
+use std::{io::{Read, Write}, net::{SocketAddr, TcpStream, ToSocketAddrs}};
 
 use crate::client::api_query::ApiQuery;
 
