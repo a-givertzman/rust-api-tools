@@ -2,11 +2,11 @@
 #[cfg(test)]
 
 mod tests {
-    use log::info;
+    use log::{debug, info, warn};
     use std::sync::Once;
     use serde_json::json;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::{client::api_query::ApiQuery, server::api_query::{api_query_sql::ApiQuerySql, api_query_type::ApiQueryType}};
+    use crate::client::api_query::{ApiQuery, ApiQuerySql};
     
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     // use super::*;
@@ -39,42 +39,36 @@ mod tests {
         info!("test_api_query");
         let testData = vec![
             (
-                ApiQueryStruct { 
+                ApiQuery::Sql(ApiQuerySql { 
                     id: "111".to_string(), 
                     database: "database name".to_string(), 
                     sql: "Some valid sql query".to_string(), 
-                    keepAlive: true},
+                    keep_alive: true}),
                 r#"{"authToken":"123zxy456!@#","id":"111","sql":{"database":"database name","sql":"Some valid sql query"},"keepAlive":true,"debug":false}"#
             ),
             (
-                ApiQueryStruct { 
+                ApiQuery::Sql(ApiQuerySql { 
                     id: "112".to_string(), 
                     database: "database name".to_string(), 
                     sql: "Some valid sql query".to_string(), 
-                    keepAlive: true},
+                    keep_alive: true}),
                 r#"{"authToken":"123zxy456!@#","id":"112","sql":{"database":"database name","sql":"Some valid sql query"},"keepAlive":false,"debug":true}"#
             ),
         ];
-        for (value, target) in testData {
-            let query = ApiQuery::new(
-                value.id,
-                ApiQueryType::Sql(ApiQuerySql {
-                    database: value.database,
-                    sql: value.sql,
-                }),
-                value.keepAlive,
-            );
-            let json = query.toJson().to_string();
-            let json = json!(json);
+        for (query, target) in testData {
+            let result = match serde_json::to_string(&query) {
+                Ok(query) => {
+                    debug!("query json: {:?}", query);
+                    query
+                },
+                Err(err) => {
+                    let message = format!("Error: {:?}", err);
+                    panic!("{}", message);
+                },
+            };
+            let result = json!(result);
             let target = json!(target);
-            assert!(json.as_object() == target.as_object(), "\n  json: {:?}\ntarget: {:?}", json, target);
+            assert!(result.as_object() == target.as_object(), "\n  result: {:?}\ntarget: {:?}", result, target);
         }
-    }
-    
-    struct ApiQueryStruct {
-        id: String,
-        database: String,
-        sql: String,
-        keepAlive: bool,
     }
 }
