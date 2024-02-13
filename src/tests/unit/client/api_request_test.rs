@@ -42,7 +42,8 @@ mod tests {
         let port = "8080";     //TestSession::free_tcp_port_str();
         let addtess = format!("127.0.0.1:{}", port);
         let token = "123zxy456!@#";
-        let keep_alive = false;
+        let keep_alive = true;
+        let close_connection = false;
         let service_keep_alive = false;
         let debug = false;
         let database = "flowers_app_server";
@@ -52,7 +53,8 @@ mod tests {
                     ApiQueryKind::Sql(ApiQuerySql::new(database, "select * from customer;")),
                     service_keep_alive, 
                 ),
-                r#"{"authToken":"123zxy456!@#","id":"001","sql":{"database":"flowers_app_server","sql":"select * from customer;"},"keepAlive":false,"debug":false}"#,
+                keep_alive,
+                r#"{"authToken":"123zxy456!@#","id":"001","sql":{"database":"flowers_app_server","sql":"select * from customer;"},"keepAlive":true,"debug":false}"#,
                 
             ),
             (
@@ -60,24 +62,27 @@ mod tests {
                     ApiQueryKind::Sql(ApiQuerySql::new(database, "select * from customer limit 3;")),
                     service_keep_alive, 
                 ),
-                r#"{"authToken":"123zxy456!@#","id":"001","sql":{"database":"flowers_app_server","sql":"select * from customer limit 3;"},"keepAlive":false,"debug":false}"#,
+                keep_alive,
+                r#"{"authToken":"123zxy456!@#","id":"001","sql":{"database":"flowers_app_server","sql":"select * from customer limit 3;"},"keepAlive":true,"debug":false}"#,
             ),
             (
                 ApiQuery::new(
                     ApiQueryKind::Python(ApiQueryPython::new("test_script", json!(HashMap::<String, f64>::new()))),
                     service_keep_alive,
                 ),
-                r#"{"authToken":"123zxy456!@#","id":"001","python":{"script":"test_script","params":{}},"keepAlive":false,"debug":false}"#,
+                keep_alive,
+                r#"{"authToken":"123zxy456!@#","id":"001","python":{"script":"test_script","params":{}},"keepAlive":true,"debug":false}"#,
             ),
             (
                 ApiQuery::new(
                     ApiQueryKind::Executable(ApiQueryExecutable::new("test_app", json!(HashMap::<String, f64>::new()))),
                     service_keep_alive,
                 ),
+                close_connection,
                 r#"{"authToken":"123zxy456!@#","id":"001","executable":{"name":"test_app","params":{}},"keepAlive":false,"debug":false}"#,
             ),
         ];
-        for (query, target) in test_data {
+        for (query, keep_alive, target) in test_data {
             let mut request = ApiRequest::new(
                 selfId,
                 &addtess,

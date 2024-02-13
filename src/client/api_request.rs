@@ -1,5 +1,3 @@
-#![allow(non_snake_case)]
-
 use log::{info, debug, warn};
 use serde::{ser::SerializeStruct, Serialize, Serializer};
 use std::{io::{Read, Write}, net::{SocketAddr, TcpStream, ToSocketAddrs}};
@@ -32,6 +30,7 @@ pub struct ApiRequest {
     query: ApiQuery,
     keep_alive: bool,
     debug: bool,
+    tcp_stream: Vec<TcpStream>,
 }
 ///
 /// 
@@ -41,8 +40,8 @@ impl ApiRequest {
     /// - [parent] - the ID if the parent entity
     pub fn new(parent: impl Into<String>, address: impl ToSocketAddrs + std::fmt::Debug, auth_token: impl Into<String>, query: ApiQuery, keep_alive: bool, debug: bool) -> Self {
         let address = match address.to_socket_addrs() {
-            Ok(mut addrIter) => {
-                match addrIter.next() {
+            Ok(mut addr_iter) => {
+                match addr_iter.next() {
                     Some(addr) => addr,
                     None => panic!("TcpClientConnect({}).connect | Empty address found: {:?}", parent.into(), address),
                 }
@@ -57,14 +56,36 @@ impl ApiRequest {
             query,
             keep_alive,
             debug,
+            tcp_stream: vec![],
+        }
+    }
+    ///
+    /// 
+    fn connect(&mut self) -> Result<TcpStream, String> {
+        match self.tcp_stream.pop() {
+            Some(tcp_stream) => {
+                Ok(tcp_stream)
+            },
+            None => {
+                match TcpStream::connect(self.address) {
+                    Ok(stream) => {
+                        info!("{}.send | connected to: \n\t{:?}", self.id, stream);
+                        Ok(stream)
+                    },
+                    Err(err) => {
+                        let message = format!("{}.connect | Connection error: \n\t{:?}", self.id, err);
+                        warn!("{}", message);
+                        Err(message)
+                    }
+                }
+            },
         }
     }
     ///
     /// Writing sql string to the TcpStream
     pub fn fetch(&mut self, query: &ApiQuery, keep_alive: bool) -> Result<Vec<u8>, String>{
-        match TcpStream::connect(self.address) {
+        match self.connect() {
             Ok(mut stream) => {
-                info!("{}.send | connected to: \n\t{:?}", self.id, stream);
                 self.query_id.add();
                 self.query = query.clone();
                 self.keep_alive = keep_alive;
@@ -73,7 +94,7 @@ impl ApiRequest {
                         debug!("{}.send | query: \n\t{:?}", self.id, query);
                         match stream.write(query.as_bytes()) {
                             Ok(_) => {
-                                Self::readAll(&self.id, &mut stream)
+                                self.read_all(stream)
                             },
                             Err(err) => {
                                 let message = format!("{}.send | write to tcp stream error: {:?}", self.id, err);
@@ -83,17 +104,13 @@ impl ApiRequest {
                         }
                     },
                     Err(err) => {
-                        let message = format!("{}.send | Error: {:?}", self.id, err);
+                        let message = format!("{}.send | Serialize error: {:?}", self.id, err);
                         warn!("{}", message);
                         Err(message)
                     },
                 }
             },
-            Err(err) => {
-                let message = format!("{}.send | Connection error: \n\t{:?}", self.id, err);
-                warn!("{}", message);
-                Err(message)
-            }
+            Err(err) => Err(err)
         }
     }
     ///
@@ -105,26 +122,27 @@ impl ApiRequest {
     // /// - returns Closed:
     // ///    - if read 0 bytes
     // ///    - if on error
-    fn readAll(selfId: &str, stream: &mut TcpStream) -> Result<Vec<u8>, String> {
+    fn read_all(&mut self, mut stream: TcpStream) -> Result<Vec<u8>, String> {
         let mut buf = [0; Self::BUF_LEN];
         let mut result = vec![];
         loop {
             match stream.read(&mut buf) {
                 Ok(len) => {
-                    debug!("{}.readAll |     read len: {:?}", selfId, len);
+                    debug!("{}.readAll |     read len: {:?}", self.id, len);
                     result.append(& mut buf[..len].into());
                     if len < Self::BUF_LEN {
                         if len == 0 {
-                            return Err(format!("{}.readAll | tcp stream closed", selfId));
+                            return Err(format!("{}.readAll | tcp stream closed", self.id));
                         } else {
+                            self.tcp_stream.push(stream);
                             return Ok(result)
                         }
                     }
                 },
                 Err(err) => {
-                    warn!("{}.readAll | error reading from socket: {:?}", selfId, err);
-                    warn!("{}.readAll | error kind: {:?}", selfId, err.kind());
-                    let status = Err(format!("{}.readAll | tcp stream error: {:?}", selfId, err));
+                    warn!("{}.readAll | error reading from socket: {:?}", self.id, err);
+                    warn!("{}.readAll | error kind: {:?}", self.id, err.kind());
+                    let status = Err(format!("{}.readAll | tcp stream error: {:?}", self.id, err));
                     return match err.kind() {
                         std::io::ErrorKind::NotFound => status,
                         std::io::ErrorKind::PermissionDenied => status,
