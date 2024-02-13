@@ -7,7 +7,7 @@ mod tests {
     use std::sync::Once;
     use serde_json::json;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::client::{api_query::ApiQuery, api_reply::ApiReply, api_request::ApiRequest};
+    use crate::client::{api_query::{ApiQuery, ApiQueryKind, ApiQuerySql}, api_reply::ApiReply, api_request::ApiRequest};
     
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     // use super::*;
@@ -79,22 +79,24 @@ mod tests {
         let addtess = format!("127.0.0.1:{}", port);
         let token = "auth-token";
         let keep_alive = false;
-        let debug = true;
+        let sql_keep_alive = false;
+        let debug = false;
         let database = "flowers_app_server";
         let sql = "select * from customer;";
-        let request = ApiRequest::new(
+        let query = ApiQuery::new(
+            "001", 
+            ApiQueryKind::Sql(ApiQuerySql::new(database, sql)),
+            sql_keep_alive, 
+        );
+        let mut request = ApiRequest::new(
             selfId,
             addtess,
             token, 
-            ApiQuery::new(
-                "001", 
-                database, 
-                sql, 
-                keep_alive, 
-            ),
+            query.clone(),
+            keep_alive,
             debug,
         );
-        match request.fetch(sql, keep_alive) {
+        match request.fetch(&query, keep_alive) {
             Ok(bytes) => {
                 let reply = ApiReply::try_from(bytes);
                 println!("reply: {:?}", reply);

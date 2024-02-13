@@ -2,7 +2,7 @@
 
 use log::{info, debug, warn};
 use serde::{ser::SerializeStruct, Serialize, Serializer};
-use std::{io::{Read, Write}, net::{SocketAddr, TcpStream, ToSocketAddrs}};
+use std::{io::{Read, Write}, net::{SocketAddr, TcpStream, ToSocketAddrs}, ops::Add};
 
 use crate::client::api_query::ApiQuery;
 
@@ -25,10 +25,16 @@ use crate::client::api_query::ApiQuery;
 /// ```
 #[derive(Serialize)]    // , Deserialize
 pub struct ApiRequest {
+    #[serde(skip_serializing)]
     id: String,
+    #[serde(rename(serialize = "id"))]
+    _id: Id,
     address: SocketAddr,
+    #[serde(rename(serialize = "authToken"))]
     auth_token: String,
     query: ApiQuery,
+    #[serde(rename(serialize = "keepAlive"))]
+    keep_alive: bool,
     debug: bool,
 }
 ///
@@ -37,7 +43,7 @@ impl ApiRequest {
     ///
     /// Creates new instance of [ApiRequest]
     /// - [parent] - the ID if the parent entity
-    pub fn new(parent: impl Into<String>, address: impl ToSocketAddrs + std::fmt::Debug, auth_token: impl Into<String>, query: ApiQuery, debug: bool) -> Self {
+    pub fn new(parent: impl Into<String>, address: impl ToSocketAddrs + std::fmt::Debug, auth_token: impl Into<String>, query: ApiQuery, keep_alive: bool, debug: bool) -> Self {
         let address = match address.to_socket_addrs() {
             Ok(mut addrIter) => {
                 match addrIter.next() {
@@ -48,20 +54,25 @@ impl ApiRequest {
             Err(err) => panic!("TcpClientConnect({}).connect | Address parsing error: \n\t{:?}", parent.into(), err),
         };
         Self {
-            id: format!("{}/ApiRequest", parent.into()),
+            id: format!("{:03}/ApiRequest", 0),
+            _id: Id { value: 0 },
             address,
             auth_token: auth_token.into(),
             query,
+            keep_alive,
             debug,
         }
     }
     ///
     /// Writing sql string to the TcpStream
-    pub fn fetch(&self, query: ApiQuery) -> Result<Vec<u8>, String>{
+    pub fn fetch(&mut self, query: &ApiQuery, keep_alive: bool) -> Result<Vec<u8>, String>{
         match TcpStream::connect(self.address) {
             Ok(mut stream) => {
                 info!("{}.send | connected to: \n\t{:?}", self.id, stream);
-                match serde_json::to_string(&query) {
+                self._id.add();
+                self.query = query.clone();
+                self.keep_alive = keep_alive;
+                match serde_json::to_string(&self) {
                     Ok(query) => {
                         match stream.write(query.as_bytes()) {
                             Ok(_) => {
@@ -165,3 +176,45 @@ impl ApiRequest {
         }
     }
 }
+
+
+#[derive(Clone, Serialize)]    // , Deserialize
+struct Id {
+    value: usize,
+}
+impl Id {
+    pub fn add(&mut self) {
+        self.value += 1;
+    }
+}
+impl Into<String> for Id {
+    fn into(self) -> String {
+        format!("{:03}", self.value)
+    }
+}
+impl Into<usize> for Id {
+    fn into(self) -> usize {
+        self.value
+    }
+}
+impl From<usize> for Id {
+    fn from(value: usize) -> Self {
+        Id { value }
+    }
+}
+// impl Serialize for Id {
+//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where
+//     S: Serializer, {
+//         state.serialize_field("message", &self.message)?;
+//         if self.debug {
+//             let mut state = serializer.serialize_struct("ApiError", 2)?;
+//             state.serialize_field("details", &self.details)?;
+//             state.end()
+//         } else {
+//             let mut state = serializer.serialize_struct("ApiError", 1)?;
+//             state.serialize_field("message", &self.message)?;
+//             state.end()
+//         }
+//         // 3 is the number of fields in the struct.
+//     }
+// }
