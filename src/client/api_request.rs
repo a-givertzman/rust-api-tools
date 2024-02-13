@@ -134,7 +134,9 @@ impl ApiRequest {
                         if len == 0 {
                             return Err(format!("{}.readAll | tcp stream closed", self.id));
                         } else {
-                            self.tcp_stream.push(stream);
+                            if self.keep_alive {
+                                self.tcp_stream.push(stream);
+                            }
                             return Ok(result)
                         }
                     }
