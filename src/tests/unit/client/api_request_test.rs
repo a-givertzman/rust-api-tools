@@ -54,7 +54,7 @@ mod tests {
                     service_keep_alive, 
                 ),
                 keep_alive,
-                r#"{"authToken":"123zxy456!@#","id":"001","sql":{"database":"flowers_app_server","sql":"select * from customer;"},"keepAlive":true,"debug":false}"#,
+                r#"{"authToken":"123zxy456!@#","id":"1","sql":{"database":"flowers_app_server","sql":"select * from customer;"},"keepAlive":true,"debug":false}"#,
                 
             ),
             (
@@ -63,7 +63,7 @@ mod tests {
                     service_keep_alive, 
                 ),
                 keep_alive,
-                r#"{"authToken":"123zxy456!@#","id":"001","sql":{"database":"flowers_app_server","sql":"select * from customer limit 3;"},"keepAlive":true,"debug":false}"#,
+                r#"{"authToken":"123zxy456!@#","id":"2","sql":{"database":"flowers_app_server","sql":"select * from customer limit 3;"},"keepAlive":true,"debug":false}"#,
             ),
             (
                 ApiQuery::new(
@@ -71,7 +71,7 @@ mod tests {
                     service_keep_alive,
                 ),
                 keep_alive,
-                r#"{"authToken":"123zxy456!@#","id":"001","python":{"script":"test_script","params":{}},"keepAlive":true,"debug":false}"#,
+                r#"{"authToken":"123zxy456!@#","id":"3","python":{"script":"test_script","params":{}},"keepAlive":true,"debug":false}"#,
             ),
             (
                 ApiQuery::new(
@@ -79,24 +79,19 @@ mod tests {
                     service_keep_alive,
                 ),
                 close_connection,
-                r#"{"authToken":"123zxy456!@#","id":"001","executable":{"name":"test_app","params":{}},"keepAlive":false,"debug":false}"#,
+                r#"{"authToken":"123zxy456!@#","id":"4","executable":{"name":"test_app","params":{}},"keepAlive":false,"debug":false}"#,
             ),
         ];
+        let mut request = ApiRequest::new(
+            selfId,
+            &addtess,
+            token, 
+            ApiQuery::new(ApiQueryKind::Sql(ApiQuerySql::new("", "")), false),
+            true,
+            debug,
+        );
         for (query, keep_alive, target) in test_data {
-            let mut request = ApiRequest::new(
-                selfId,
-                &addtess,
-                token, 
-                query.clone(),
-                keep_alive,
-                debug,
-            );
             println!("\nrequest: {:?}", request);
-            let result = json!(request);
-            // let result: serde_json::Value = serde_json::from_str(&request).unwrap();
-            let target: serde_json::Value = serde_json::from_str(target).unwrap();
-            assert!(result == target, "\n result: {:?}\n target: {:?}", result, target);
-            println!("\n result: {:?}\n target: {:?}", result, target);
             match request.fetch(&query, keep_alive) {
                 Ok(bytes) => {
                     let reply = ApiReply::try_from(bytes);
@@ -106,6 +101,10 @@ mod tests {
                     panic!("{} | Error: {:?}", selfId, err);
                 },
             };
+            let result = json!(request);
+            let target: serde_json::Value = serde_json::from_str(target).unwrap();
+            assert!(result == target, "\n result: {:?}\n target: {:?}", result, target);
+            println!("\n result: {:?}\n target: {:?}", result, target);
         }
     }
 }

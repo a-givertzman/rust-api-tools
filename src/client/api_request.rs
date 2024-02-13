@@ -223,24 +223,24 @@ struct Id {
     value: usize,
 }
 impl Id {
-    pub fn new() -> Self { Self { value: 1 } }
+    pub fn new() -> Self { Self { value: 0 } }
     pub fn add(&mut self) {
         self.value += 1;
-    }
-}
-impl Into<usize> for Id {
-    fn into(self) -> usize {
-        self.value
-    }
-}
-impl From<usize> for Id {
-    fn from(value: usize) -> Self {
-        Id { value }
     }
 }
 impl Serialize for Id {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where
     S: Serializer, {
-        serializer.serialize_str(&format!("{:03}", self.value))
+        serializer.serialize_str(&self.value.to_string())
     }
 }
+// impl Into<usize> for Id {
+//     fn into(self) -> usize {
+//         self.value
+//     }
+// }
+// impl From<usize> for Id {
+//     fn from(value: usize) -> Self {
+//         Id { value }
+//     }
+// }
