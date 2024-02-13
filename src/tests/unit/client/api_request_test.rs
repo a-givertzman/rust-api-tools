@@ -2,12 +2,11 @@
 #[cfg(test)]
 
 mod tests {
-    use log::{debug, info, warn};
-    use testing::session::test_session::TestSession;
+    use log::{debug, warn};
     use std::{collections::HashMap, sync::Once};
     use serde_json::json;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use postgres::{Client, NoTls, types::{Type, to_sql_checked, FromSql, self, Kind}};
+    use postgres::{Client, NoTls};
     use crate::client::{api_query::{ApiQuery, ApiQueryExecutable, ApiQueryKind, ApiQueryPython, ApiQuerySql}, api_reply::ApiReply, api_request::ApiRequest};
     
     // Note this useful idiom: importing names from outer (for mod tests) scope.
