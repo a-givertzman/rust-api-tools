@@ -2,7 +2,7 @@ use serde::Serialize;
 
 ///
 /// Client side API query structure
-#[derive(Clone, Serialize)]    // , Deserialize
+#[derive(Debug, Clone, Serialize)]    // , Deserialize
 pub struct ApiQuery {
     // pub id: String,
     pub query: ApiQueryKind,
@@ -28,7 +28,7 @@ impl ApiQuery {
 ///  - ApiQuerySql
 ///  - ApiQueryPython
 ///  - ApiQueryQxecutable
-#[derive(Clone, Serialize)]    // , Deserialize
+#[derive(Debug, Clone, Serialize)]    // , Deserialize
 pub enum ApiQueryKind {
     #[serde(rename(serialize = "sql"))]
     Sql(ApiQuerySql),
@@ -48,7 +48,7 @@ pub enum ApiQueryKind {
 ///     },
 ///     "keep-alive": true,
 /// }
-#[derive(Clone, Serialize)]    // , Deserialize
+#[derive(Debug, Clone, Serialize)]    // , Deserialize
 pub struct ApiQuerySql {
     pub database: String,
     pub sql: String,
@@ -71,7 +71,7 @@ impl ApiQuerySql {
 }
 ///
 /// 
-#[derive(Clone, Serialize)]    // , Deserialize
+#[derive(Debug, Clone, Serialize)]    // , Deserialize
 pub struct ApiQueryPython {
     pub script: String,
     pub params: String,
@@ -93,7 +93,7 @@ impl ApiQueryPython {
     }
 }
 
-#[derive(Clone, Serialize)]    // , Deserialize
+#[derive(Debug, Clone, Serialize)]    // , Deserialize
 pub struct ApiQueryExecutable {
     pub script: String,
     pub params: String,

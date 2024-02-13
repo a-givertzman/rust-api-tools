@@ -33,7 +33,7 @@ mod tests {
     
     #[test]
     fn test_api_query() {
-        DebugSession::init(LogLevel::Info, Backtrace::Short);
+        DebugSession::init(LogLevel::Debug, Backtrace::Short);
         initOnce();
         initEach();
         println!("");
@@ -96,10 +96,11 @@ mod tests {
             keep_alive,
             debug,
         );
+        println!("\nrequest: {:?}", request);
         match request.fetch(&query, keep_alive) {
             Ok(bytes) => {
                 let reply = ApiReply::try_from(bytes);
-                println!("reply: {:?}", reply);
+                println!("\nreply: {:?}", reply);
             },
             Err(err) => {
                 panic!("{} | Error: {:?}", selfId, err);
@@ -107,13 +108,4 @@ mod tests {
         };
 
     }
-    
-    // struct ApiQueryStruct {
-    //     authToken: String,
-    //     id: String,
-    //     database: String,
-    //     sql: String,
-    //     keepAlive: bool,
-    //     debug: bool,
-    // }
 }

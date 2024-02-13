@@ -23,18 +23,13 @@ use crate::client::api_query::ApiQuery;
 ///    debug,
 /// )
 /// ```
-#[derive(Serialize)]    // , Deserialize
+#[derive(Debug)]    // , Deserialize
 pub struct ApiRequest {
-    #[serde(skip_serializing)]
     id: String,
-    #[serde(rename(serialize = "id"))]
-    _id: Id,
-    #[serde(skip_serializing)]
+    query_id: Id,
     address: SocketAddr,
-    #[serde(rename(serialize = "authToken"))]
     auth_token: String,
     query: ApiQuery,
-    #[serde(rename(serialize = "keepAlive"))]
     keep_alive: bool,
     debug: bool,
 }
@@ -56,7 +51,7 @@ impl ApiRequest {
         };
         Self {
             id: format!("{:03}/ApiRequest", 0),
-            _id: Id { value: 0 },
+            query_id: Id { value: 0 },
             address,
             auth_token: auth_token.into(),
             query,
@@ -70,11 +65,12 @@ impl ApiRequest {
         match TcpStream::connect(self.address) {
             Ok(mut stream) => {
                 info!("{}.send | connected to: \n\t{:?}", self.id, stream);
-                self._id.add();
+                self.query_id.add();
                 self.query = query.clone();
                 self.keep_alive = keep_alive;
                 match serde_json::to_string(&self) {
                     Ok(query) => {
+                        debug!("{}.send | query: \n\t{:?}", self.id, query);
                         match stream.write(query.as_bytes()) {
                             Ok(_) => {
                                 Self::readAll(&self.id, &mut stream)
@@ -177,12 +173,39 @@ impl ApiRequest {
         }
     }
 }
-
-
+///
+/// 
+impl Serialize for ApiRequest {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer {
+        let mut state = serializer.serialize_struct("ApiRequest", 2)?;
+        state.serialize_field("id", &self.id)?;
+        state.serialize_field("authToken", &self.auth_token)?;
+        state.serialize_field("keepAlive", &self.keep_alive)?;
+        state.serialize_field("debug", &self.debug)?;
+        match &self.query.query {
+            super::api_query::ApiQueryKind::Sql(query) => {
+                state.serialize_field("sql", query)?;
+            },
+            super::api_query::ApiQueryKind::Python(query) => {
+                state.serialize_field("python", query)?;
+            },
+            super::api_query::ApiQueryKind::Executable(query) => {
+                state.serialize_field("exequtable", query)?;
+            },
+        };
+        state.end()
+    }
+}
+///
+/// 
+#[derive(Debug)]
 struct Id {
     value: usize,
 }
 impl Id {
+    pub fn new() -> Self { Self { value: 0 } }
     pub fn add(&mut self) {
         self.value += 1;
     }
