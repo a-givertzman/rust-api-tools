@@ -6,6 +6,7 @@ use serde::Serialize;
 pub struct ApiQuery {
     // pub id: String,
     pub query: ApiQueryKind,
+    #[serde(skip_serializing)]
     pub keep_alive: bool,
 }
 ///

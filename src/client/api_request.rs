@@ -29,6 +29,7 @@ pub struct ApiRequest {
     id: String,
     #[serde(rename(serialize = "id"))]
     _id: Id,
+    #[serde(skip_serializing)]
     address: SocketAddr,
     #[serde(rename(serialize = "authToken"))]
     auth_token: String,
@@ -178,18 +179,12 @@ impl ApiRequest {
 }
 
 
-#[derive(Clone, Serialize)]    // , Deserialize
 struct Id {
     value: usize,
 }
 impl Id {
     pub fn add(&mut self) {
         self.value += 1;
-    }
-}
-impl Into<String> for Id {
-    fn into(self) -> String {
-        format!("{:03}", self.value)
     }
 }
 impl Into<usize> for Id {
@@ -202,19 +197,9 @@ impl From<usize> for Id {
         Id { value }
     }
 }
-// impl Serialize for Id {
-//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where
-//     S: Serializer, {
-//         state.serialize_field("message", &self.message)?;
-//         if self.debug {
-//             let mut state = serializer.serialize_struct("ApiError", 2)?;
-//             state.serialize_field("details", &self.details)?;
-//             state.end()
-//         } else {
-//             let mut state = serializer.serialize_struct("ApiError", 1)?;
-//             state.serialize_field("message", &self.message)?;
-//             state.end()
-//         }
-//         // 3 is the number of fields in the struct.
-//     }
-// }
+impl Serialize for Id {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where
+    S: Serializer, {
+        serializer.serialize_str(&format!("{:03}", self.value))
+    }
+}
