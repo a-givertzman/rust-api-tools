@@ -1,12 +1,11 @@
-#![allow(non_snake_case)]
 #[cfg(test)]
 
 mod tests {
-    use log::{debug, info, warn};
-    use std::sync::Once;
+    use log::{debug, info};
+    use std::{collections::HashMap, sync::Once};
     use serde_json::json;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::client::api_query::{ApiQuery, ApiQueryKind, ApiQuerySql};
+    use crate::client::api_query::{ApiQuery, ApiQueryExecutable, ApiQueryKind, ApiQueryPython, ApiQuerySql};
     
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     // use super::*;
@@ -40,25 +39,43 @@ mod tests {
         let test_data = vec![
             (
                 ApiQuery::new(
-                    "111".to_string(), 
                     ApiQueryKind::Sql(ApiQuerySql { 
-                        database: "database name".to_string(), 
-                        sql: "Some valid sql query".to_string(), 
+                        database: "database1".to_string(), 
+                        sql: "Some valid sql query1".to_string(), 
                     }),
                     true,
                 ),
-                r#"{"authToken":"123zxy456!@#","id":"111","sql":{"database":"database name","sql":"Some valid sql query"},"keepAlive":true,"debug":false}"#
+                r#"{"query":{"sql":{"database":"database1","sql":"Some valid sql query1"}}}"#
             ),
             (
                 ApiQuery::new(
-                    "112".to_string(), 
                     ApiQueryKind::Sql(ApiQuerySql { 
-                        database: "database name".to_string(), 
-                        sql: "Some valid sql query".to_string(), 
+                        database: "database2".to_string(), 
+                        sql: "Some valid sql query2".to_string(), 
                     }),
                     true,
                 ),
-                r#"{"authToken":"123zxy456!@#","id":"112","sql":{"database":"database name","sql":"Some valid sql query"},"keepAlive":false,"debug":true}"#
+                r#"{"query":{"sql":{"database":"database2","sql":"Some valid sql query2"}}}"#
+            ),
+            (
+                ApiQuery::new(
+                    ApiQueryKind::Python(ApiQueryPython { 
+                        script: "python_script".to_string(), 
+                        params: json!(HashMap::<String, f64>::new()), 
+                    }),
+                    true,
+                ),
+                r#"{"query":{"python":{"script":"python_script","params":{}}}}"#
+            ),
+            (
+                ApiQuery::new(
+                    ApiQueryKind::Executable(ApiQueryExecutable { 
+                        name: "executable_name".to_string(), 
+                        params: json!(HashMap::<String, f64>::new()), 
+                    }),
+                    true,
+                ),
+                r#"{"query":{"executable":{"name":"executable_name","params":{}}}}"#
             ),
         ];
         for (query, target) in test_data {
@@ -72,9 +89,10 @@ mod tests {
                     panic!("{}", message);
                 },
             };
-            let result = json!(result);
-            let target = json!(target);
-            assert!(result.as_object() == target.as_object(), "\n  result: {:?}\ntarget: {:?}", result, target);
+            let result: serde_json::Value = serde_json::from_str(&result).unwrap();
+            let target: serde_json::Value = serde_json::from_str(target).unwrap();
+            println!("\n result: {:?}\n target: {:?}", result, target);
+            assert!(result == target, "\n result: {:?}\n target: {:?}", result, target);
         }
     }
 }

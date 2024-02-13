@@ -50,8 +50,8 @@ impl ApiRequest {
             Err(err) => panic!("TcpClientConnect({}).connect | Address parsing error: \n\t{:?}", parent.into(), err),
         };
         Self {
-            id: format!("{:03}/ApiRequest", 0),
-            query_id: Id { value: 0 },
+            id: format!("{}/ApiRequest", parent.into()),
+            query_id: Id::new(),
             address,
             auth_token: auth_token.into(),
             query,
@@ -180,7 +180,7 @@ impl Serialize for ApiRequest {
     where
         S: Serializer {
         let mut state = serializer.serialize_struct("ApiRequest", 2)?;
-        state.serialize_field("id", &self.id)?;
+        state.serialize_field("id", &self.query_id)?;
         state.serialize_field("authToken", &self.auth_token)?;
         state.serialize_field("keepAlive", &self.keep_alive)?;
         state.serialize_field("debug", &self.debug)?;
@@ -192,7 +192,7 @@ impl Serialize for ApiRequest {
                 state.serialize_field("python", query)?;
             },
             super::api_query::ApiQueryKind::Executable(query) => {
-                state.serialize_field("exequtable", query)?;
+                state.serialize_field("executable", query)?;
             },
         };
         state.end()
@@ -205,7 +205,7 @@ struct Id {
     value: usize,
 }
 impl Id {
-    pub fn new() -> Self { Self { value: 0 } }
+    pub fn new() -> Self { Self { value: 1 } }
     pub fn add(&mut self) {
         self.value += 1;
     }

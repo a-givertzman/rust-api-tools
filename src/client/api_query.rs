@@ -57,7 +57,6 @@ impl ApiQuerySql {
     ///
     /// Creates new instance of ApiQuery
     pub fn new(
-        // authToken: impl Into<String>,
         database: impl Into<String>,
         sql: impl Into<String>,
     ) -> Self {
@@ -72,7 +71,7 @@ impl ApiQuerySql {
 #[derive(Debug, Clone, Serialize)]    // , Deserialize
 pub struct ApiQueryPython {
     pub script: String,
-    pub params: String,
+    pub params: serde_json::Value,
 }
 ///
 /// 
@@ -80,21 +79,20 @@ impl ApiQueryPython {
     ///
     /// Creates new instance of ApiQuery
     pub fn new(
-        // authToken: impl Into<String>,
         script: impl Into<String>,
-        params: impl Into<String>,
+        params: serde_json::Value,
     ) -> Self {
         Self {
             script: script.into(),
-            params: params.into(),
+            params: params,
         }
     }
 }
 
 #[derive(Debug, Clone, Serialize)]    // , Deserialize
 pub struct ApiQueryExecutable {
-    pub script: String,
-    pub params: String,
+    pub name: String,
+    pub params: serde_json::Value,
 }
 ///
 /// 
@@ -102,13 +100,12 @@ impl ApiQueryExecutable {
     ///
     /// Creates new instance of ApiQuery
     pub fn new(
-        // authToken: impl Into<String>,
-        script: impl Into<String>,
-        params: impl Into<String>,
+        name: impl Into<String>,
+        params: serde_json::Value,
     ) -> Self {
         Self {
-            script: script.into(),
-            params: params.into(),
+            name: name.into(),
+            params: params,
         }
     }
 }
