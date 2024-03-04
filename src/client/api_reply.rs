@@ -1,6 +1,5 @@
 #![allow(non_snake_case)]
 
-use indexmap::IndexMap;
 use serde::{Serialize, Deserialize};
 
 use crate::error::api_error::ApiError;
@@ -8,8 +7,8 @@ use crate::error::api_error::ApiError;
 ///
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct ApiReply {
-    pub id: String,
     pub authToken: String,
+    pub id: String,
     pub query: String,
     pub data: serde_json::Value,     //Vec<IndexMap<String, serde_json::Value>>,
     pub keepAlive: bool,

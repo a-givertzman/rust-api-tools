@@ -10,9 +10,9 @@ use crate::error::api_error::ApiError;
 pub struct SqlReply {
     pub authToken: String,
     pub id: String,
-    pub keepAlive: bool,
     pub query: String,
     pub data: Vec<IndexMap<String, serde_json::Value>>,
+    pub keepAlive: bool,
     pub error: ApiError,
 
 }
@@ -32,6 +32,7 @@ impl SqlReply {
     //     self.error.push_str(err.as_str());
     // }
     ///
+    /// 
     pub fn asBytes(&self) -> Vec<u8> {
         let result = serde_json::to_string(&self);
         match result {
