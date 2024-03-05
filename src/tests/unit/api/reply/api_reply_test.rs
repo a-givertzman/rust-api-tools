@@ -39,11 +39,11 @@ mod api_reply {
         let test_data = [
             (
                 ApiReply {
-                    authToken: "123zxy456!@#".to_string(),
+                    auth_token: "123zxy456!@#".to_string(),
                     id: "1".to_string(),
                     query: "{\"database\":\"test_api_query\",\"sql\":\"select * from customer limit 3;\"}".to_string(),
                     data: vec![],
-                    keepAlive: service_keep_alive,
+                    keep_alive: service_keep_alive,
                     error: ApiError::empty(),
                 },
                 r#"{"authToken":"123zxy456!@#","id":"1","keepAlive":false,"query":"{\"database\":\"test_api_query\",\"sql\":\"select * from customer limit 3;\"}","data":[],"error":{"message":""}}"#,
@@ -98,9 +98,9 @@ mod api_reply {
             (
                 r#"{"authToken":"authToken","id":"id","keepAlive":true,"query":"","data":[],"error":{"message":""}}"#,
                 ApiReply { 
-                    authToken: "authToken".to_string(), 
+                    auth_token: "authToken".to_string(), 
                     id: "id".to_string(), 
-                    keepAlive: true, 
+                    keep_alive: true, 
                     query: String::new(), 
                     data: vec![], 
                     error: ApiError::empty(),

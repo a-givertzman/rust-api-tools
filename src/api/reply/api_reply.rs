@@ -6,60 +6,64 @@ use crate::error::api_error::ApiError;
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct ApiReply {
     #[serde(rename = "authToken")]
-    pub authToken: String,
+    pub auth_token: String,
     pub id: String,
     pub query: String,
     pub data: Vec<IndexMap<String, serde_json::Value>>,
     #[serde(rename = "keepAlive")]
-    pub keepAlive: bool,
+    pub keep_alive: bool,
     pub error: ApiError,
 }
 impl ApiReply {
-    // pub fn new(jsonString: String) -> SqlReply {
-    //     let raw: SqlReply = serde_json::from_str(&jsonString).unwrap();
-    //     println!("raw: {:?}", raw);
-    //     raw
-    // }
-    // ///
-    // pub fn appendData(&mut self, row: HashMap<String, serde_json::Value>) {
-    //     self.data.push(row);
-    // }
-    // ///
-    // pub fn appendError(&mut self, err: String) {
-    //     self.error.push_str("|\n");
-    //     self.error.push_str(err.as_str());
-    // }
     ///
-    /// 
-    pub fn asBytes(&self) -> Vec<u8> {
+    /// Returns bytes of the Self serialized with json_serde 
+    pub fn as_bytes(&self) -> Vec<u8> {
         let result = serde_json::to_string(&self);
         match result {
-            Ok(jsonString) => {
-                jsonString.clone().as_bytes().to_owned()
+            Ok(json_string) => {
+                json_string.clone().as_bytes().to_owned()
             },
             Err(_) => todo!(),
         }
     }
     ///
-    pub fn error(
-        authToken: String,
+    /// Creates ApiReply without error information
+    pub fn new(
+        auth_token: String,
         id: String,
-        keepAlive: bool,
+        keep_alive: bool,
+        query: String, 
+    ) -> Self {
+        ApiReply {
+            auth_token,
+            id,
+            keep_alive,
+            query,
+            data: vec![],
+            error: ApiError::empty(),
+        }        
+    }
+    ///
+    /// Creates ApiReply with error information only
+    pub fn error(
+        auth_token: String,
+        id: String,
+        keep_alive: bool,
         query: String, 
         error: ApiError,
     ) -> Self {
         ApiReply {
-            authToken,
+            auth_token,
             id,
-            keepAlive,
+            keep_alive,
             query,
             data: vec![],
             error,
         }        
     }
     ///
-    /// 
-    pub fn hasError(&self) -> bool {
+    /// Returns true if self.error is empty
+    pub fn has_error(&self) -> bool {
         !self.error.is_empty()
     }
 }
@@ -76,61 +80,3 @@ impl TryFrom<Vec<u8>> for ApiReply {
         }
     }
 }
-
-// #[derive(Debug)]
-// struct Value(rusqlite::types::Value);
-
-// impl Serialize for Value {
-//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-//     where
-//         S: serde::Serializer {
-//         todo!()
-//     }
-// }
-
-// impl<'de> Deserialize<'_> for Value {
-//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-//     where
-//         D: serde::Deserializer<'de> {
-//         todo!()
-//     }
-
-//     fn deserialize_in_place<D>(deserializer: D, place: &mut Self) -> Result<(), D::Error>
-//     where
-//         D: serde::Deserializer<'de>,
-//     {
-//         // Default implementation just delegates to `deserialize` impl.
-//         *place = try!(Deserialize::deserialize(deserializer));
-//         Ok(())
-//     }
-// }
-
-
-// impl<'de> Deserialize<'de> for Value {
-//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-//     where
-//         D: Deserializer<'de>,
-//     {
-//         #[derive(Debug, Deserialize)]
-//         struct Mapping {
-//             field: i32,
-//             #[serde(rename = "A")]
-//             a: Option<i32>,
-//             #[serde(rename = "B")]
-//             b: Option<i32>,
-//         }
-
-//         let Mapping { field, a, b } = Mapping::deserialize(deserializer)?;
-
-//         match (a, b) {
-//             (Some(_), Some(_)) => 
-//                 Err(D::Error::new("multiple variants specified")),
-//             (Some(a), None) =>
-//                 Ok(Value { field, an_enum: AnEnum::A(a) }),
-//             (None, Some(b)) => 
-//                 Ok(Value { field, an_enum: AnEnum::B(b) }),
-//             (None, None) =>
-//                 Err(D::Error::custom("no variants specified")),
-//         }
-//     }
-// }
