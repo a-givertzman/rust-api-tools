@@ -121,7 +121,7 @@ mod api_reply {
         for (reply, target) in test_data {
             let result: serde_json::Value = serde_json::from_str(&reply).unwrap();
             println!("json: {}", result);
-            let result: ApiReply = serde_json::from_str(&reply).unwrap();
+            let result: ApiReply = serde_json::from_str(reply).unwrap();
             assert!(result == target, "\nresult: {:?}\ntarget: {:?}", result, target);
         }
         test_duration.exit();
