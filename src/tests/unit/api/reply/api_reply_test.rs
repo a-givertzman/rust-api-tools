@@ -105,7 +105,18 @@ mod api_reply {
                     data: vec![], 
                     error: ApiError::empty(),
                 },
-            )
+            ),
+            (
+                "{\"authToken\":\"123!@#\",\"id\":\"1\",\"query\":\"\",\"data\":[],\"keepAlive\":true,\"error\":{\"message\":\"\"}}",
+                ApiReply { 
+                    auth_token: "123!@#".to_string(), 
+                    id: "1".to_string(), 
+                    keep_alive: true, 
+                    query: String::new(), 
+                    data: vec![], 
+                    error: ApiError::empty(),
+                },
+            ),
         ];
         for (reply, target) in test_data {
             let result: serde_json::Value = serde_json::from_str(&reply).unwrap();
