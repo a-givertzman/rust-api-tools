@@ -1,9 +1,10 @@
 #[cfg(test)]
 
 mod api_reply {
-    use std::sync::Once;
+    use std::{sync::Once, time::Duration};
     use serde_json::json;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
+    use testing::stuff::max_test_duration::TestDuration;
     use crate::{
         api::reply::api_reply::ApiReply,
         client::api_query::{ApiQuery, ApiQueryKind, ApiQuerySql},
@@ -24,6 +25,7 @@ mod api_reply {
     ///  - ...
     fn init_each() -> () {}
     ///
+    /// 
     #[test]
     fn serialize() {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
@@ -96,5 +98,38 @@ mod api_reply {
         }
         // let mut client = TestDatabasePostgres::connect_db(self_id, "postgres", "postgres", "localhost:5432", "").unwrap();
         // TestDatabasePostgres::drop_db(self_id, &mut client, database).unwrap();
+    }
+    ///
+    /// 
+    #[test]
+    fn deserialize() {
+        DebugSession::init(LogLevel::Debug, Backtrace::Short);
+        init_once();
+        init_each();
+        println!("");
+        let self_id = "test ApiReply";
+        println!("{}", self_id);
+        let test_duration = TestDuration::new(self_id, Duration::from_secs(10));
+        test_duration.run().unwrap();
+        let test_data = [
+            (
+                r#"{"authToken":"authToken","id":"id","keepAlive":true,"query":"","data":[],"error":{"message":""}}"#,
+                ApiReply { 
+                    authToken: "authToken".to_string(), 
+                    id: "id".to_string(), 
+                    keepAlive: true, 
+                    query: String::new(), 
+                    data: vec![], 
+                    error: ApiError::empty(),
+                },
+            )
+        ];
+        for (reply, target) in test_data {
+            let result: serde_json::Value = serde_json::from_str(&reply).unwrap();
+            println!("json: {}", result);
+            let result: ApiReply = serde_json::from_str(&reply).unwrap();
+            assert!(result == target, "\nresult: {:?}\ntarget: {:?}", result, target);
+        }
+        test_duration.exit();
     }
 }

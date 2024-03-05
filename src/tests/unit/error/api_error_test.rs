@@ -15,7 +15,7 @@ mod tests {
     
     ///
     /// once called initialisation
-    fn initOnce() {
+    fn init_once() {
         INIT.call_once(|| {
                 // implement your initialisation code to be called only once for current test file
             }
@@ -26,20 +26,20 @@ mod tests {
     ///
     /// returns:
     ///  - ...
-    fn initEach() -> () {
+    fn init_each() -> () {
     
     }
     
     #[test]
     fn test_api_error() {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
-        initOnce();
-        initEach();
+        init_once();
+        init_each();
         println!("");
-        let selfId = "test ApiReply";
-        println!("{}", selfId);
-        let testDuration = TestDuration::new(selfId, Duration::from_secs(10));
-        testDuration.run().unwrap();
+        let self_id = "test ApiReply";
+        println!("{}", self_id);
+        let test_duration = TestDuration::new(self_id, Duration::from_secs(10));
+        test_duration.run().unwrap();
         let errs = [
             (r#"{"message":""}"#, ApiError::new(String::new(), String::new())),
             (r#"{"message":"mmm"}"#, ApiError::new(String::from("mmm"), String::new())),
@@ -53,6 +53,6 @@ mod tests {
             let result: ApiError = serde_json::from_str(&err).unwrap();
             assert!(result == target, "\nresult: {:?}\ntarget: {:?}", result, target);
         }
-        testDuration.exit();
+        test_duration.exit();
     }
 }
