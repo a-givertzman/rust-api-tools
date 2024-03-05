@@ -1,23 +1,22 @@
-#![allow(non_snake_case)]
-
+use indexmap::IndexMap;
 use serde::{Serialize, Deserialize};
-
 use crate::error::api_error::ApiError;
 
 ///
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct ApiReply {
+    #[serde(rename = "authToken")]
     pub authToken: String,
     pub id: String,
     pub query: String,
-    pub data: serde_json::Value,     //Vec<IndexMap<String, serde_json::Value>>,
+    pub data: Vec<IndexMap<String, serde_json::Value>>,
+    #[serde(rename = "keepAlive")]
     pub keepAlive: bool,
     pub error: ApiError,
-
 }
 impl ApiReply {
-    // pub fn new(jsonString: String) -> ApiReply {
-    //     let raw: ApiReply = serde_json::from_str(&jsonString).unwrap();
+    // pub fn new(jsonString: String) -> SqlReply {
+    //     let raw: SqlReply = serde_json::from_str(&jsonString).unwrap();
     //     println!("raw: {:?}", raw);
     //     raw
     // }
@@ -54,7 +53,7 @@ impl ApiReply {
             id,
             keepAlive,
             query,
-            data:  serde_json::Value::Null, //vec![],
+            data: vec![],
             error,
         }        
     }
@@ -64,7 +63,8 @@ impl ApiReply {
         !self.error.is_empty()
     }
 }
-
+///
+/// 
 impl TryFrom<Vec<u8>> for ApiReply {
     type Error = String;
     fn try_from(bytes: Vec<u8>) -> Result<Self, String> {

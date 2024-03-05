@@ -6,7 +6,7 @@ mod tests {
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
     use testing::stuff::max_test_duration::TestDuration;
     use crate::{
-        server::reply::api_reply::SqlReply,
+        api::reply::api_reply::ApiReply,
         error::api_error::ApiError,
     }; 
     
@@ -43,7 +43,7 @@ mod tests {
         let testDuration = TestDuration::new(selfId, Duration::from_secs(10));
         testDuration.run().unwrap();
         let reply = r#"{"authToken":"authToken","id":"id","keepAlive":true,"query":"","data":[],"error":{"message":""}}"#;
-        let target = SqlReply { 
+        let target = ApiReply { 
             authToken: "authToken".to_string(), 
             id: "id".to_string(), 
             keepAlive: true, 
@@ -53,7 +53,7 @@ mod tests {
         };
         let result: serde_json::Value = serde_json::from_str(&reply).unwrap();
         println!("json: {}", result);
-        let result: SqlReply = serde_json::from_str(&reply).unwrap();
+        let result: ApiReply = serde_json::from_str(&reply).unwrap();
         assert!(result == target, "\nresult: {:?}\ntarget: {:?}", result, target);
         testDuration.exit();
     }

@@ -4,7 +4,11 @@ mod tests {
     use std::{collections::HashMap, sync::Once};
     use serde_json::json;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::{client::{api_query::{ApiQuery, ApiQueryExecutable, ApiQueryKind, ApiQueryPython, ApiQuerySql}, api_reply::ApiReply, api_request::ApiRequest}, tests::unit::client::prepare_postgres::TestDatabasePostgres};
+    use crate::{
+        api::reply::api_reply::ApiReply,
+        client::{api_query::{ApiQuery, ApiQueryExecutable, ApiQueryKind, ApiQueryPython, ApiQuerySql}, api_request::ApiRequest}, 
+        tests::unit::client::prepare_postgres::TestDatabasePostgres,
+    };
     
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     // use super::*;

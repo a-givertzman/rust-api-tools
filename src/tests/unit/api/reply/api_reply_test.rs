@@ -4,9 +4,9 @@ mod api_reply {
     use std::sync::Once;
     use serde_json::json;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::client::{
-        api_query::{ApiQuery, ApiQueryKind, ApiQuerySql},
-        api_reply::ApiReply,
+    use crate::{
+        api::reply::api_reply::ApiReply,
+        client::api_query::{ApiQuery, ApiQueryKind, ApiQuerySql},
     };
     use crate::error::api_error::ApiError;
     ///    
@@ -55,7 +55,7 @@ mod api_reply {
                         ApiQueryKind::Sql(ApiQuerySql::new(database, "select * from customer limit 3;")),
                         service_keep_alive, 
                     )).to_string(),
-                    data: json!(Vec::<usize>::new()),
+                    data: vec![],
                     keepAlive: service_keep_alive,
                     error: ApiError::empty(),
                 },
