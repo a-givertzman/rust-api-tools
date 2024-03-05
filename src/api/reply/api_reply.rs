@@ -33,13 +33,14 @@ impl ApiReply {
         id: String,
         keep_alive: bool,
         query: String, 
+        data: Vec<IndexMap<String, serde_json::Value>>,
     ) -> Self {
         ApiReply {
             auth_token,
             id,
             keep_alive,
             query,
-            data: vec![],
+            data,
             error: ApiError::empty(),
         }        
     }
