@@ -1,4 +1,4 @@
-use log::{info, debug, warn};
+use log::{debug, info, trace, warn};
 use serde::{ser::SerializeStruct, Serialize, Serializer};
 use std::{io::{Read, Write}, net::{SocketAddr, TcpStream, ToSocketAddrs}};
 
@@ -69,7 +69,7 @@ impl ApiRequest {
             None => {
                 match TcpStream::connect(self.address) {
                     Ok(stream) => {
-                        info!("{}.send | connected to: \n\t{:?}", self.id, stream);
+                        debug!("{}.connect | connected to: \n\t{:?}", self.id, stream);
                         Ok(stream)
                     },
                     Err(err) => {
@@ -91,20 +91,20 @@ impl ApiRequest {
                 self.keep_alive = keep_alive;
                 match serde_json::to_string(&self) {
                     Ok(query) => {
-                        debug!("{}.send | query: \n\t{:?}", self.id, query);
+                        trace!("{}.fetch | query: \n\t{:?}", self.id, query);
                         match stream.write(query.as_bytes()) {
                             Ok(_) => {
                                 self.read_all(stream)
                             },
                             Err(err) => {
-                                let message = format!("{}.send | write to tcp stream error: {:?}", self.id, err);
+                                let message = format!("{}.fetch | write to tcp stream error: {:?}", self.id, err);
                                 warn!("{}", message);
                                 Err(message)
                             },
                         }
                     },
                     Err(err) => {
-                        let message = format!("{}.send | Serialize error: {:?}", self.id, err);
+                        let message = format!("{}.fetch | Serialize error: {:?}", self.id, err);
                         warn!("{}", message);
                         Err(message)
                     },
@@ -128,11 +128,11 @@ impl ApiRequest {
         loop {
             match stream.read(&mut buf) {
                 Ok(len) => {
-                    debug!("{}.readAll |     read len: {:?}", self.id, len);
+                    trace!("{}.read_all |     read len: {:?}", self.id, len);
                     result.append(& mut buf[..len].into());
                     if len < Self::BUF_LEN {
                         if len == 0 {
-                            return Err(format!("{}.readAll | tcp stream closed", self.id));
+                            return Err(format!("{}.read_all | tcp stream closed", self.id));
                         } else {
                             if self.keep_alive {
                                 self.tcp_stream.push(stream);
@@ -142,9 +142,9 @@ impl ApiRequest {
                     }
                 },
                 Err(err) => {
-                    warn!("{}.readAll | error reading from socket: {:?}", self.id, err);
-                    warn!("{}.readAll | error kind: {:?}", self.id, err.kind());
-                    let status = Err(format!("{}.readAll | tcp stream error: {:?}", self.id, err));
+                    warn!("{}.read_all | error reading from socket: {:?}", self.id, err);
+                    warn!("{}.read_all | error kind: {:?}", self.id, err.kind());
+                    let status = Err(format!("{}.read_all | tcp stream error: {:?}", self.id, err));
                     return match err.kind() {
                         std::io::ErrorKind::NotFound => status,
                         std::io::ErrorKind::PermissionDenied => status,
