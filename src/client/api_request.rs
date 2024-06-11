@@ -122,20 +122,20 @@ impl ApiRequest {
                 self.keep_alive = keep_alive;
                 match serde_json::to_string(&self) {
                     Ok(query) => {
-                        trace!("{}.fetch | query: \n\t{:?}", self.id, query);
+                        trace!("{}.fetch_with | query: \n\t{:?}", self.id, query);
                         match stream.write(query.as_bytes()) {
                             Ok(_) => {
                                 self.read_all(stream)
                             },
                             Err(err) => {
-                                let message = format!("{}.fetch | write to tcp stream error: {:?}", self.id, err);
+                                let message = format!("{}.fetch_with | write to tcp stream error: {:?}", self.id, err);
                                 warn!("{}", message);
                                 Err(message)
                             },
                         }
                     },
                     Err(err) => {
-                        let message = format!("{}.fetch | Serialize error: {:?}", self.id, err);
+                        let message = format!("{}.fetch_with | Serialize error: {:?}", self.id, err);
                         warn!("{}", message);
                         Err(message)
                     },
