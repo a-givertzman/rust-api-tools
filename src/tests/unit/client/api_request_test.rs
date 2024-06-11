@@ -99,7 +99,7 @@ mod api_request {
         );
         for (query, keep_alive, target) in test_data {
             println!("\nrequest: {:?}", request);
-            match request.fetch(&query, keep_alive) {
+            match request.fetch_with(&query, keep_alive) {
                 Ok(bytes) => {
                     let reply = ApiReply::try_from(bytes);
                     println!("\nreply: {:?}", reply);
@@ -136,7 +136,7 @@ mod api_request {
         let addtess = format!("127.0.0.1:{}", port);
         let token = "123zxy456!@#";
         let keep_alive = true;
-        let close_connection = false;
+        // let close_connection = false;
         let service_keep_alive = false;
         let debug = true;
         let test_data = [
@@ -184,7 +184,7 @@ mod api_request {
         );
         for (query, keep_alive, target) in test_data {
             println!("\nrequest: {:?}", request);
-            match request.fetch(&query, keep_alive) {
+            match request.fetch_with(&query, keep_alive) {
                 Ok(bytes) => {
                     let reply = ApiReply::try_from(bytes);
                     println!("\nreply: {:?}", reply);

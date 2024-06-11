@@ -82,8 +82,39 @@ impl ApiRequest {
         }
     }
     ///
-    /// Writing sql string to the TcpStream
-    pub fn fetch(&mut self, query: &ApiQuery, keep_alive: bool) -> Result<Vec<u8>, String>{
+    /// Performs an API request with the parameters specified in the constructor
+    pub fn fetch(&mut self, keep_alive: bool) -> Result<Vec<u8>, String>{
+        match self.connect() {
+            Ok(mut stream) => {
+                self.query_id.add();
+                self.keep_alive = keep_alive;
+                match serde_json::to_string(&self) {
+                    Ok(query) => {
+                        trace!("{}.fetch | query: \n\t{:?}", self.id, query);
+                        match stream.write(query.as_bytes()) {
+                            Ok(_) => {
+                                self.read_all(stream)
+                            },
+                            Err(err) => {
+                                let message = format!("{}.fetch | write to tcp stream error: {:?}", self.id, err);
+                                warn!("{}", message);
+                                Err(message)
+                            },
+                        }
+                    },
+                    Err(err) => {
+                        let message = format!("{}.fetch | Serialize error: {:?}", self.id, err);
+                        warn!("{}", message);
+                        Err(message)
+                    },
+                }
+            },
+            Err(err) => Err(err)
+        }
+    }
+    ///
+    /// Performs an API request with passed query and parameters specified in the constructor
+    pub fn fetch_with(&mut self, query: &ApiQuery, keep_alive: bool) -> Result<Vec<u8>, String>{
         match self.connect() {
             Ok(mut stream) => {
                 self.query_id.add();
