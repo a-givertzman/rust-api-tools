@@ -166,7 +166,7 @@ impl ApiQuery {
         }
     }
     ///
-    /// builds ApiQuery from bytes
+    /// Builds ApiQuery from bytes
     pub fn fromBytes(bytes: Vec<u8>) -> Self {
         let mut auth_token = "Unknown".to_string();
         let mut id = "Unknown".to_string();
