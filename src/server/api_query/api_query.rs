@@ -54,6 +54,7 @@ impl ApiQuery {
         }
     }
     ///
+    /// Returns `ApiQuery` parsing query of type `ApiQueryType::Sql`
     fn parse_api_query_sql(src_query: &str, json: serde_json::Value, auth_token: String, id: String, keep_alive: bool, debug: bool) -> ApiQuery {
         debug!("[ApiQuery.parseApiQuerySql] detected: {}", ApiQueryTypeName::Sql.value());
         match ApiQuerySql::fromJson(json[ApiQueryTypeName::Sql.value()].clone()) {
@@ -80,6 +81,7 @@ impl ApiQuery {
         }
     }
     ///
+    /// Returns `ApiQuery` parsing query of type `ApiQueryType::Python`
     fn parse_api_query_python(src_query: &str, json: serde_json::Value, auth_token: String, id: String, keep_alive: bool, debug: bool) -> ApiQuery {
         debug!("ApiQuery.fromBytes | detected: {}", ApiQueryTypeName::Python.value());
         match ApiQueryPython::fromJson(json[ApiQueryTypeName::Python.value()].clone()) {
@@ -106,6 +108,7 @@ impl ApiQuery {
         }
     }
     ///
+    /// Returns `ApiQuery` parsing query of type `ApiQueryType::Executable`
     fn parse_api_query_executable(src_query: &str, json: serde_json::Value, auth_token: String, id: String, keep_alive: bool, debug: bool) -> ApiQuery {
         debug!("ApiQuery.fromBytes | detected: {}", ApiQueryTypeName::Executable.value());
         match ApiQueryExecutable::fromJson(json[ApiQueryTypeName::Executable.value()].clone()) {
@@ -132,7 +135,7 @@ impl ApiQuery {
         }
     }
     ///
-    ///
+    /// Returns `ApiQueryTypeName` if parsed
     fn parse_query_type_name(query: &serde_json::map::Map<String, serde_json::Value>) -> Result<ApiQueryTypeName, ApiError> {
         let mut queries = 0;
         let mut query_type = ApiQueryTypeName::Unknown;
