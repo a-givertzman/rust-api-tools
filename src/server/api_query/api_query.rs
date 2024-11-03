@@ -168,13 +168,12 @@ impl ApiQuery {
     }
     ///
     /// Builds ApiQuery from bytes
-    pub fn from_bytes(bytes: Vec<u8>) -> Self {
+    pub fn from_bytes(bytes: &[u8]) -> Self {
         let mut auth_token = "Unknown".to_string();
         let mut id = "Unknown".to_string();
         let mut keep_alive = false;
         let mut debug = true;
-        let ref_bytes = &bytes;
-        match serde_json::from_slice::<serde_json::Value>(ref_bytes) {
+        match serde_json::from_slice::<serde_json::Value>(bytes) {
             Ok(json) => {
                 match &json.as_object() {
                     Some(query_map) => {
@@ -270,8 +269,8 @@ impl ApiQuery {
             },
             Err(err) => {
                 let details = format!("ApiQuery.fromBytes | json parsing error: {:?}", err);
-                let default = ref_bytes.iter().map(|v| v.to_string()).reduce(|i, v| i + "," + &v).unwrap_or(String::new());
-                let query_string = String::from_utf8(ref_bytes.to_owned()).unwrap_or(default);
+                let default = bytes.iter().map(|v| v.to_string()).reduce(|i, v| i + "," + &v).unwrap_or(String::new());
+                let query_string = String::from_utf8(bytes.to_owned()).unwrap_or(default);
                 warn!("{} \n\tin query: {}", details, query_string);
                 ApiQuery {
                     auth_token,
