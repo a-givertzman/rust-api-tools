@@ -32,8 +32,7 @@
 //!     - 49, Duration
 //!     - .., ...
 //! 
-use crate::domain::error::error::StrErr;
-
+use crate::error::str_err::StrErr;
 use super::from_bytes::FromBytes;
 ///
 /// Kind of Message

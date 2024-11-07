@@ -1,4 +1,4 @@
-use crate::domain::error::error::StrErr;
+use crate::error::str_err::StrErr;
 ///
 /// 
 pub trait FromBytes: Sized {

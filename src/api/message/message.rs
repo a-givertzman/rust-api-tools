@@ -33,7 +33,7 @@
 //!     - .., ...
 //! 
 use std::iter::Peekable;
-use crate::domain::error::error::StrErr;
+use crate::error::str_err::StrErr;
 use super::{fields::{FieldData, FieldKind, FieldSize, FieldSyn}, from_bytes::FromBytes, message_kind::MessageKind};
 /// 
 /// 

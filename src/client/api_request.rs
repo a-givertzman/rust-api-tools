@@ -2,7 +2,7 @@ use log::{debug, info, trace, warn};
 use serde::{ser::SerializeStruct, Serialize, Serializer};
 use std::{io::{Read, Write}, net::{SocketAddr, TcpStream, ToSocketAddrs}};
 
-use crate::client::api_query::ApiQuery;
+use crate::{api::message::{fields::{FieldData, FieldKind, FieldSize, FieldSyn}, message::{Message, MessageFild}, message_kind::MessageKind}, client::api_query::ApiQuery};
 
 ///
 /// - Holding single input queue
@@ -91,7 +91,14 @@ impl ApiRequest {
                 match serde_json::to_string(&self) {
                     Ok(query) => {
                         trace!("{}.fetch | query: \n\t{:?}", self.id, query);
-                        match stream.write(query.as_bytes()) {
+                        let mut message = Message::new(&[
+                            MessageFild::Syn(FieldSyn(Message::SYN)),
+                            MessageFild::Kind(FieldKind(MessageKind::String)),
+                            MessageFild::Size(FieldSize(4)),
+                            MessageFild::Data(FieldData(vec![]))
+                        ]);
+                        let bytes = message.build(query.as_bytes());
+                        match stream.write(&bytes) {
                             Ok(_) => {
                                 self.read_all(stream)
                             },
