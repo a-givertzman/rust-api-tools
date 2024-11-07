@@ -1,5 +1,5 @@
 use serde::{ser::SerializeStruct, Serialize, Serializer};
-use std::{io::{Read, Write}, net::{SocketAddr, TcpStream, ToSocketAddrs}};
+use std::{io::{Read, Write}, net::{SocketAddr, TcpStream, ToSocketAddrs}, time::{Duration, Instant}};
 use crate::{api::message::{fields::{FieldData, FieldKind, FieldSize, FieldSyn}, message::{Message, MessageFild}, message_kind::MessageKind}, client::api_query::ApiQuery, error::str_err::StrErr};
 
 ///
@@ -29,6 +29,7 @@ pub struct ApiRequest {
     keep_alive: bool,
     debug: bool,
     connection: Option<(TcpStream, Message)>,
+    timeout: Duration,
 }
 //
 //
@@ -55,7 +56,14 @@ impl ApiRequest {
             keep_alive,
             debug,
             connection: None,
+            timeout: Duration::from_secs(10),
         }
+    }
+    ///
+    /// Returns [ApiRequest] with specified socket read/write timeout (default 10 sec)
+    pub fn with_timeout(mut self, timeout: Duration) -> Self {
+        self.timeout = timeout;
+        self
     }
     ///
     /// Opens a connection to the TCP Socket and preparing the `Message`
@@ -68,6 +76,14 @@ impl ApiRequest {
                 match TcpStream::connect(self.address) {
                     Ok(stream) => {
                         log::debug!("{}.connect | connected to: \n\t{:?}", self.id, stream);
+                        if let Err(err) = stream.set_read_timeout(Some(self.timeout)) {
+                            let message = format!("{}.connect | set_read_timeout error: \n\t{:?}", self.id, err);
+                            log::warn!("{}", message);
+                        }
+                        if let Err(err) = stream.set_write_timeout(Some(self.timeout)) {
+                            let message = format!("{}.connect | set_write_timeout error: \n\t{:?}", self.id, err);
+                            log::warn!("{}", message);
+                        }
                         let message = Message::new(&[
                             MessageFild::Syn(FieldSyn(Message::SYN)),
                             MessageFild::Kind(FieldKind(MessageKind::String)),
@@ -99,21 +115,21 @@ impl ApiRequest {
                         match stream.write(&bytes) {
                             Ok(_) => {
                                 self.read_message(stream, message)
-                            },
+                            }
                             Err(err) => {
                                 let message = format!("{}.fetch | write to tcp stream error: {:?}", self.id, err);
                                 log::warn!("{}", message);
                                 Err(message.into())
-                            },
+                            }
                         }
-                    },
+                    }
                     Err(err) => {
                         let message = format!("{}.fetch | Serialize error: {:?}", self.id, err);
                         log::warn!("{}", message);
                         Err(message.into())
-                    },
+                    }
                 }
-            },
+            }
             Err(err) => Err(err)
         }
     }
@@ -131,21 +147,21 @@ impl ApiRequest {
                         match stream.write(query.as_bytes()) {
                             Ok(_) => {
                                 self.read_message(stream, message)
-                            },
+                            }
                             Err(err) => {
                                 let message = format!("{}.fetch_with | write to tcp stream error: {:?}", self.id, err);
                                 log::warn!("{}", message);
                                 Err(message.into())
-                            },
+                            }
                         }
-                    },
+                    }
                     Err(err) => {
                         let message = format!("{}.fetch_with | Serialize error: {:?}", self.id, err);
                         log::warn!("{}", message);
                         Err(message.into())
-                    },
+                    }
                 }
-            },
+            }
             Err(err) => Err(err)
         }
     }
@@ -157,10 +173,11 @@ impl ApiRequest {
     /// - Returns payload bytes only (cuting header)
     fn read_message(&mut self, mut stream: TcpStream, mut message: Message) -> Result<Vec<u8>, StrErr> {
         let mut buf = [0; Self::BUF_LEN];
+        let time = Instant::now();
         loop {
             match stream.read(&mut buf) {
                 Ok(len) => {
-                    log::trace!("{}.read_all |     read len: {:?}", self.id, len);
+                    log::trace!("{}.read_message |     read len: {:?}", self.id, len);
                     match message.parse(&buf[..len]) {
                         Ok(parsed) => match parsed.as_slice() {
                             [ MessageFild::Kind(kind), MessageFild::Size(FieldSize(size)), MessageFild::Data(FieldData(data)) ] => {
@@ -185,7 +202,7 @@ impl ApiRequest {
                             }
                             v if v.is_empty() => {}
                             [..] => {
-                                let err = format!("{} | Unknown message kind {:?}", self.id, parsed);
+                                let err = format!("{}.read_message | Unknown message kind {:?}", self.id, parsed);
                                 log::warn!("{}", err);
                                 // return Err(err.into())
                             }
@@ -200,11 +217,14 @@ impl ApiRequest {
                             return Err(format!("{}.read_message | tcp stream closed", self.id).into());
                         }
                     }
-                },
+                }
                 Err(err) => {
                     _ = self.parse_err(err);
                 }
             };
+            if time.elapsed() > self.timeout {
+                return Err(format!("{}.read_message | Valid message wasn`t received in specified timeout ({:?})", self.id, self.timeout).into());
+            }
         }
     }
     // ///
