@@ -98,7 +98,7 @@ impl ApiRequest {
                         let bytes = message.build(query.as_bytes());
                         match stream.write(&bytes) {
                             Ok(_) => {
-                                self.read_all(stream, message)
+                                self.read_message(stream, message)
                             },
                             Err(err) => {
                                 let message = format!("{}.fetch | write to tcp stream error: {:?}", self.id, err);
@@ -150,7 +150,11 @@ impl ApiRequest {
         }
     }
     ///
-    /// 
+    /// bytes to be read from socket at once
+    const BUF_LEN: usize = 1024 * 1;
+    ///
+    /// Reads all available data from the TspStream until `Message` parsed successfully
+    /// - Returns payload bytes only (cuting header)
     fn read_message(&mut self, mut stream: TcpStream, mut message: Message) -> Result<Vec<u8>, StrErr> {
         let mut buf = [0; Self::BUF_LEN];
         loop {
@@ -187,40 +191,37 @@ impl ApiRequest {
             };
         }
     }
-    ///
-    /// bytes to be read from socket at once
-    const BUF_LEN: usize = 1024 * 1;
     // ///
     // /// reads all avalible data from the TspStream
     // /// - returns Active: if read bytes non zero length without errors
     // /// - returns Closed:
     // ///    - if read 0 bytes
     // ///    - if on error
-    fn read_all(&mut self, mut stream: TcpStream, message: Message) -> Result<Vec<u8>, StrErr> {
-        let mut buf = [0; Self::BUF_LEN];
-        let mut result = vec![];
-        loop {
-            match stream.read(&mut buf) {
-                Ok(len) => {
-                    log::trace!("{}.read_all |     read len: {:?}", self.id, len);
-                    result.append(& mut buf[..len].into());
-                    if len < Self::BUF_LEN {
-                        if len == 0 {
-                            return Err(format!("{}.read_all | tcp stream closed", self.id).into());
-                        } else {
-                            if self.keep_alive {
-                                self.connection.replace((stream, message));
-                            }
-                            return Ok(result)
-                        }
-                    }
-                },
-                Err(err) => {
-                    _ = self.parse_err(err);
-                }
-            };
-        }
-    }
+    // fn read_all(&mut self, mut stream: TcpStream, message: Message) -> Result<Vec<u8>, StrErr> {
+    //     let mut buf = [0; Self::BUF_LEN];
+    //     let mut result = vec![];
+    //     loop {
+    //         match stream.read(&mut buf) {
+    //             Ok(len) => {
+    //                 log::trace!("{}.read_all |     read len: {:?}", self.id, len);
+    //                 result.append(& mut buf[..len].into());
+    //                 if len < Self::BUF_LEN {
+    //                     if len == 0 {
+    //                         return Err(format!("{}.read_all | tcp stream closed", self.id).into());
+    //                     } else {
+    //                         if self.keep_alive {
+    //                             self.connection.replace((stream, message));
+    //                         }
+    //                         return Ok(result)
+    //                     }
+    //                 }
+    //             },
+    //             Err(err) => {
+    //                 _ = self.parse_err(err);
+    //             }
+    //         };
+    //     }
+    // }
     ///
     /// 
     fn parse_err(&self, err: std::io::Error) -> Result<Vec<u8>, StrErr>{
