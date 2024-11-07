@@ -57,6 +57,20 @@ pub struct Message {
 }
 //
 //
+impl std::fmt::Debug for Message {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Message")
+            .field("fields", &self.fields)
+            .field("result", &self.result)
+            .field("start", &self.start)
+            .field("end", &self.end)
+            .field("size", &self.size)
+            .field("buffer", &self.buffer)
+            .finish()
+    }
+}
+//
+//
 impl Message {
     /// Each Message starts with
     pub const SYN: u8 = 22;
