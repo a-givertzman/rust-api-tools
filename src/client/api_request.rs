@@ -165,18 +165,34 @@ impl ApiRequest {
                         Ok(parsed) => match parsed.as_slice() {
                             [ MessageFild::Kind(kind), MessageFild::Size(FieldSize(size)), MessageFild::Data(FieldData(data)) ] => {
                                 log::debug!("{}.read_message | kind: {:?},  size: {},  data: {:?}", self.id, kind, size, data);
-                                return Ok(data.to_owned())
+                                match kind.0 {
+                                    MessageKind::Any => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.id, kind),
+                                    MessageKind::Empty => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.id, kind),
+                                    MessageKind::Bytes => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.id, kind),
+                                    MessageKind::Bool => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.id, kind),
+                                    MessageKind::U16 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.id, kind),
+                                    MessageKind::U32 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.id, kind),
+                                    MessageKind::U64 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.id, kind),
+                                    MessageKind::I16 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.id, kind),
+                                    MessageKind::I32 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.id, kind),
+                                    MessageKind::I64 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.id, kind),
+                                    MessageKind::F32 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.id, kind),
+                                    MessageKind::F64 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.id, kind),
+                                    MessageKind::String => return Ok(data.to_owned()),
+                                    MessageKind::Timestamp => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.id, kind),
+                                    MessageKind::Duration => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.id, kind),
+                                }
                             }
                             v if v.is_empty() => {}
                             [..] => {
                                 let err = format!("{} | Unknown message kind {:?}", self.id, parsed);
                                 log::warn!("{}", err);
-                                return Err(err.into())
+                                // return Err(err.into())
                             }
                         }
                         Err(err) => {
                             log::warn!("{}", err);
-                            return Err(err.into())
+                            // return Err(err.into())
                         }
                     };
                     if len < Self::BUF_LEN {
@@ -223,8 +239,8 @@ impl ApiRequest {
     //     }
     // }
     ///
-    /// 
-    fn parse_err(&self, err: std::io::Error) -> Result<Vec<u8>, StrErr>{
+    /// Returns Connection status dipending on IO Error
+    fn parse_err(&self, err: std::io::Error) -> Result<Vec<u8>, StrErr> {
         log::warn!("{}.read_all | error reading from socket: {:?}", self.id, err);
         log::warn!("{}.read_all | error kind: {:?}", self.id, err.kind());
         let status = Err(format!("{}.read_all | tcp stream error: {:?}", self.id, err).into());
