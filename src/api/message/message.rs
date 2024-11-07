@@ -196,7 +196,8 @@ impl Message {
                                         }
                                         None => {
                                             self.buffer = bytes.into();
-                                            return Err(format!("Message.parse | Filed 'Data' take error").into());
+                                            return Ok(vec![]);
+                                            // return Err(format!("Message.parse | Filed 'Data' take error").into());
                                         }
                                     }
                                 }

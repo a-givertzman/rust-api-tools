@@ -1,7 +1,5 @@
-use log::{debug, info, trace, warn};
 use serde::{ser::SerializeStruct, Serialize, Serializer};
 use std::{io::{Read, Write}, net::{SocketAddr, TcpStream, ToSocketAddrs}};
-
 use crate::{api::message::{fields::{FieldData, FieldKind, FieldSize, FieldSyn}, message::{Message, MessageFild}, message_kind::MessageKind}, client::api_query::ApiQuery, error::str_err::StrErr};
 
 ///
@@ -32,8 +30,8 @@ pub struct ApiRequest {
     debug: bool,
     connection: Option<(TcpStream, Message)>,
 }
-///
-/// 
+//
+//
 impl ApiRequest {
     ///
     /// Creates new instance of [ApiRequest]
@@ -60,8 +58,8 @@ impl ApiRequest {
         }
     }
     ///
-    /// 
-    fn connect(&mut self) -> Result<(TcpStream, Message), String> {
+    /// Opens a connection to the TCP Socket and preparing the `Message`
+    fn connect(&mut self) -> Result<(TcpStream, Message), StrErr> {
         match self.connection.take() {
             Some(connection) => {
                 Ok(connection)
@@ -69,7 +67,7 @@ impl ApiRequest {
             None => {
                 match TcpStream::connect(self.address) {
                     Ok(stream) => {
-                        debug!("{}.connect | connected to: \n\t{:?}", self.id, stream);
+                        log::debug!("{}.connect | connected to: \n\t{:?}", self.id, stream);
                         let message = Message::new(&[
                             MessageFild::Syn(FieldSyn(Message::SYN)),
                             MessageFild::Kind(FieldKind(MessageKind::String)),
@@ -80,8 +78,8 @@ impl ApiRequest {
                     },
                     Err(err) => {
                         let message = format!("{}.connect | Connection error: \n\t{:?}", self.id, err);
-                        warn!("{}", message);
-                        Err(message)
+                        log::warn!("{}", message);
+                        Err(message.into())
                     }
                 }
             },
@@ -89,14 +87,14 @@ impl ApiRequest {
     }
     ///
     /// Performs an API request with the parameters specified in the constructor
-    pub fn fetch(&mut self, keep_alive: bool) -> Result<Vec<u8>, String>{
+    pub fn fetch(&mut self, keep_alive: bool) -> Result<Vec<u8>, StrErr>{
         match self.connect() {
             Ok((mut stream, mut message)) => {
                 self.query_id.add();
                 self.keep_alive = keep_alive;
                 match serde_json::to_string(&self) {
                     Ok(query) => {
-                        trace!("{}.fetch | query: \n\t{:?}", self.id, query);
+                        log::trace!("{}.fetch | query: \n\t{:?}", self.id, query);
                         let bytes = message.build(query.as_bytes());
                         match stream.write(&bytes) {
                             Ok(_) => {
@@ -104,15 +102,15 @@ impl ApiRequest {
                             },
                             Err(err) => {
                                 let message = format!("{}.fetch | write to tcp stream error: {:?}", self.id, err);
-                                warn!("{}", message);
-                                Err(message)
+                                log::warn!("{}", message);
+                                Err(message.into())
                             },
                         }
                     },
                     Err(err) => {
                         let message = format!("{}.fetch | Serialize error: {:?}", self.id, err);
-                        warn!("{}", message);
-                        Err(message)
+                        log::warn!("{}", message);
+                        Err(message.into())
                     },
                 }
             },
@@ -121,30 +119,30 @@ impl ApiRequest {
     }
     ///
     /// Performs an API request with passed query and parameters specified in the constructor
-    pub fn fetch_with(&mut self, query: &ApiQuery, keep_alive: bool) -> Result<Vec<u8>, String>{
+    pub fn fetch_with(&mut self, query: &ApiQuery, keep_alive: bool) -> Result<Vec<u8>, StrErr>{
         match self.connect() {
-            Ok(mut stream) => {
+            Ok((mut stream, message)) => {
                 self.query_id.add();
                 self.query = query.clone();
                 self.keep_alive = keep_alive;
                 match serde_json::to_string(&self) {
                     Ok(query) => {
-                        trace!("{}.fetch_with | query: \n\t{:?}", self.id, query);
+                        log::trace!("{}.fetch_with | query: \n\t{:?}", self.id, query);
                         match stream.write(query.as_bytes()) {
                             Ok(_) => {
-                                self.read_all(stream)
+                                self.read_message(stream, message)
                             },
                             Err(err) => {
                                 let message = format!("{}.fetch_with | write to tcp stream error: {:?}", self.id, err);
-                                warn!("{}", message);
-                                Err(message)
+                                log::warn!("{}", message);
+                                Err(message.into())
                             },
                         }
                     },
                     Err(err) => {
                         let message = format!("{}.fetch_with | Serialize error: {:?}", self.id, err);
-                        warn!("{}", message);
-                        Err(message)
+                        log::warn!("{}", message);
+                        Err(message.into())
                     },
                 }
             },
@@ -158,20 +156,24 @@ impl ApiRequest {
         loop {
             match stream.read(&mut buf) {
                 Ok(len) => {
-                    trace!("{}.read_all |     read len: {:?}", self.id, len);
+                    log::trace!("{}.read_all |     read len: {:?}", self.id, len);
                     match message.parse(&buf[..len]) {
                         Ok(parsed) => match parsed.as_slice() {
                             [ MessageFild::Kind(kind), MessageFild::Size(FieldSize(size)), MessageFild::Data(FieldData(data)) ] => {
                                 log::debug!("{}.read_message | kind: {:?},  size: {},  data: {:?}", self.id, kind, size, data);
                                 return Ok(data.to_owned())
                             }
+                            v if v.is_empty() => {}
                             [..] => {
                                 let err = format!("{} | Unknown message kind {:?}", self.id, parsed);
                                 log::warn!("{}", err);
                                 return Err(err.into())
                             }
                         }
-                        Err(_) => {},
+                        Err(err) => {
+                            log::warn!("{}", err);
+                            return Err(err.into())
+                        }
                     };
                     if len < Self::BUF_LEN {
                         if len == 0 {
@@ -180,7 +182,7 @@ impl ApiRequest {
                     }
                 },
                 Err(err) => {
-                    self.parse_err(err);
+                    _ = self.parse_err(err);
                 }
             };
         }
@@ -194,17 +196,17 @@ impl ApiRequest {
     // /// - returns Closed:
     // ///    - if read 0 bytes
     // ///    - if on error
-    fn read_all(&mut self, mut stream: TcpStream, message: Message) -> Result<Vec<u8>, String> {
+    fn read_all(&mut self, mut stream: TcpStream, message: Message) -> Result<Vec<u8>, StrErr> {
         let mut buf = [0; Self::BUF_LEN];
         let mut result = vec![];
         loop {
             match stream.read(&mut buf) {
                 Ok(len) => {
-                    trace!("{}.read_all |     read len: {:?}", self.id, len);
+                    log::trace!("{}.read_all |     read len: {:?}", self.id, len);
                     result.append(& mut buf[..len].into());
                     if len < Self::BUF_LEN {
                         if len == 0 {
-                            return Err(format!("{}.read_all | tcp stream closed", self.id));
+                            return Err(format!("{}.read_all | tcp stream closed", self.id).into());
                         } else {
                             if self.keep_alive {
                                 self.connection.replace((stream, message));
@@ -214,17 +216,17 @@ impl ApiRequest {
                     }
                 },
                 Err(err) => {
-                    self.parse_err(err);
+                    _ = self.parse_err(err);
                 }
             };
         }
     }
     ///
     /// 
-    fn parse_err(&self, err: std::io::Error) -> Result<Vec<u8>, String>{
-        warn!("{}.read_all | error reading from socket: {:?}", self.id, err);
-        warn!("{}.read_all | error kind: {:?}", self.id, err.kind());
-        let status = Err(format!("{}.read_all | tcp stream error: {:?}", self.id, err));
+    fn parse_err(&self, err: std::io::Error) -> Result<Vec<u8>, StrErr>{
+        log::warn!("{}.read_all | error reading from socket: {:?}", self.id, err);
+        log::warn!("{}.read_all | error kind: {:?}", self.id, err.kind());
+        let status = Err(format!("{}.read_all | tcp stream error: {:?}", self.id, err).into());
         match err.kind() {
             std::io::ErrorKind::NotFound => status,
             std::io::ErrorKind::PermissionDenied => status,

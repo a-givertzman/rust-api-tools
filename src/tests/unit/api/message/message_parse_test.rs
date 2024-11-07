@@ -142,6 +142,7 @@ mod message {
                             assert!(result == target.2, "step: {} \nresult: {:?}\ntarget: {:?}", step, result, target.2);
                             result_data = Some(result);
                         }
+                        v if v.is_empty() => {}
                         [..] => {
                             panic!("{} | Unknown message kind {:?}", dbgid, parsed);
                         }
