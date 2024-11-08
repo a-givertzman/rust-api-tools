@@ -15,7 +15,9 @@ mod api_request {
     static TEARDOWN_COUNT: AtomicUsize = AtomicUsize::new(0);
     ///
     /// once called initialisation
-    fn init_once(self_id: &str, database: &str, tmp_path: &str, git_repo: &str) {
+    /// returns ApiServer PID
+    fn init_once(self_id: &str, database: &str, tmp_path: &str, git_repo: &str) -> u32 {
+        let mut child: u32 = 0;
         INIT.call_once(|| {
                 // implement your initialisation code to be called only once for current test file
                 let mut client = TestDatabasePostgres::connect_db(self_id, "postgres", "postgres", "localhost:5432", "").unwrap();
@@ -24,14 +26,45 @@ mod api_request {
                 let mut client = TestDatabasePostgres::connect_db(self_id, database, database, "localhost:5432", database).unwrap();
                 TestDatabasePostgres::create_db_table(self_id, &mut client, database, "customer").unwrap();
                 client.close().unwrap();
-                let output = Command::new(format!("./src/tests/unit/client/setup.sh"))
+                let setup_sh = "./src/tests/unit/client/setup-build.sh";
+                log::debug!("{}.init_once | Preparing new instance of api-server...
+                    \t - Be sure you are have internet connection for git clone
+                    \t - Be sure local address '0.0.0.0:8080' is not busy before test executed
+                    \t - Check '{}'",self_id, setup_sh
+                );
+                let output = Command::new(setup_sh)
                     .arg(tmp_path)
                     .arg(git_repo)
                     .output()
-                    .expect("Failed to exec setup.sh");
-                log::debug!("std: {:?}", output);
+                    .expect("Failed to exec setup-build.sh");
+                log::debug!("{}.init_once | setup-build: {:?}",self_id, output);
+                let run_sh = "./src/tests/unit/client/setup-run.sh";
+                let p = Command::new(run_sh)
+                    .arg(tmp_path)
+                    .spawn()
+                    .expect("Failed to exec setup-run.sh");
+                log::debug!("{}.init_once | setup-run: {:?}",self_id, p);
+                child = p.id()
             }
-        )
+        );
+        child
+    }
+    ///
+    /// Once called after all tests
+    fn teardown_once(self_id: &str, database: &str, tmp_path: &str, child_id: u32) {
+        let mut client = TestDatabasePostgres::connect_db(self_id, "postgres", "postgres", "localhost:5432", "").unwrap();
+        TestDatabasePostgres::drop_db(self_id, &mut client, database).unwrap();
+        let p = Command::new("rm")
+            .arg("rf")
+            .arg(tmp_path)
+            .output()
+            .expect("Failed to remove tmp dir");
+        log::debug!("std: {:#?}", p);
+        let p = Command::new("kill")
+            .arg(format!("{}", child_id))
+            .spawn()
+            .expect("Failed to remove tmp dir");
+        log::debug!("std: {:#?}", p.stdout);
     }
     ///
     /// returns:
@@ -47,18 +80,13 @@ mod api_request {
         let self_id = "test ApiRequest";
         println!("{}", self_id);
         let database = "test_api_query";
-        let tmp_path = "/tmp/api-tools-test/api-server";
+        let tmp_path = "/tmp/api-tools-test/api-server/";
         let git_repo = "https://github.com/a-givertzman/api-server.git";
-        init_once(self_id, database, tmp_path, git_repo);
-        let teardown_once = || {
-            let mut client = TestDatabasePostgres::connect_db(self_id, "postgres", "postgres", "localhost:5432", "").unwrap();
-            TestDatabasePostgres::drop_db(self_id, &mut client, database).unwrap();
-            let output = Command::new(format!("rm -r '{}'", tmp_path))
-                .output()
-                .expect("Failed to remove tmp dir");
-            log::debug!("std: {:?}", output);
+        let child_id = init_once(self_id, database, tmp_path, git_repo);
+        let _teardown_once = || {
+            teardown_once(&self_id, &database, &tmp_path, child_id);
         };
-        let _teardown = Teardown::new(&TEARDOWN_COUNT, &|| {}, &teardown_once,);
+        let _teardown = Teardown::new(&TEARDOWN_COUNT, &|| {}, &_teardown_once);
         let port = "8080";     //TestSession::free_tcp_port_str();
         let addtess = format!("0.0.0.0:{}", port);
         let token = "123zxy456!@#";
@@ -138,14 +166,22 @@ mod api_request {
         let self_id = "test ApiRequest";
         println!("{}", self_id);
         let database = "test_api_query";
-        let tmp_path = "/tmp/api-tools-test/";
+        let tmp_path = "/tmp/api-tools-test/api-server/";
         let git_repo = "https://github.com/a-givertzman/api-server.git";
-        init_once(self_id, database, tmp_path, git_repo);
-        let teardown_once = || {
-                let mut client = TestDatabasePostgres::connect_db(self_id, "postgres", "postgres", "localhost:5432", "").unwrap();
-                TestDatabasePostgres::drop_db(self_id, &mut client, database).unwrap();
-            };
-        let _teardown = Teardown::new(&TEARDOWN_COUNT, &|| {}, &teardown_once,);
+        let child_id = init_once(self_id, database, tmp_path, git_repo);
+        // let teardown_once = || {
+        //         let mut client = TestDatabasePostgres::connect_db(self_id, "postgres", "postgres", "localhost:5432", "").unwrap();
+        //         TestDatabasePostgres::drop_db(self_id, &mut client, database).unwrap();
+        //         let child = Command::new("kill")
+        //             .arg(format!("{}", id))
+        //             .spawn()
+        //             .expect("Failed to remove tmp dir");
+        //         log::debug!("std: {:#?}", child.stdout);
+        //     };
+        let _teardown_once = || {
+            teardown_once(&self_id, &database, &tmp_path, child_id);
+        };
+        let _teardown = Teardown::new(&TEARDOWN_COUNT, &|| {}, &_teardown_once);
         let port = "8080";     //TestSession::free_tcp_port_str();
         let addtess = format!("127.0.0.1:{}", port);
         let token = "123zxy456!@#";
