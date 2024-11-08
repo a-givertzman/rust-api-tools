@@ -137,14 +137,15 @@ impl ApiRequest {
     /// Performs an API request with passed query and parameters specified in the constructor
     pub fn fetch_with(&mut self, query: &ApiQuery, keep_alive: bool) -> Result<Vec<u8>, StrErr>{
         match self.connect() {
-            Ok((mut stream, message)) => {
+            Ok((mut stream, mut message)) => {
                 self.query_id.add();
                 self.query = query.clone();
                 self.keep_alive = keep_alive;
                 match serde_json::to_string(&self) {
                     Ok(query) => {
                         log::trace!("{}.fetch_with | query: \n\t{:?}", self.id, query);
-                        match stream.write(query.as_bytes()) {
+                        let bytes = message.build(query.as_bytes());
+                        match stream.write(&bytes) {
                             Ok(_) => {
                                 self.read_message(stream, message)
                             }
