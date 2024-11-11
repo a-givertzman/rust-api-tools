@@ -249,7 +249,7 @@ impl Message {
     }
     ///
     /// Returns message built according to specified fields and passed `bytes`
-    pub fn build(&mut self, bytes: &mut Vec<u8>, id: u32) -> Vec<u8> {
+    pub fn build(&mut self, bytes: &[u8], id: u32) -> Vec<u8> {
         let mut message = vec![];
         for field in &mut self.fields {
             match field {
@@ -258,7 +258,7 @@ impl Message {
                 MessageField::Kind(field_kind) => message.extend(field_kind.to_bytes()),
                 MessageField::Size(field_size) => message.extend(field_size.to_be_bytes(bytes.len() as u32)),
                 MessageField::Data(_) => {
-                    message.append(bytes);
+                    message.extend_from_slice(bytes);
                 }
             }
         }
