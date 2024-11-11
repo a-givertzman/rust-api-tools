@@ -34,12 +34,13 @@
 //! 
 use std::iter::Peekable;
 use crate::error::str_err::StrErr;
-use super::{fields::{FieldData, FieldKind, FieldSize, FieldSyn}, from_bytes::FromBytes, message_kind::MessageKind};
+use super::{fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn}, from_bytes::FromBytes, message_kind::MessageKind};
 /// 
 /// 
 #[derive(Debug, Clone, PartialEq)]
-pub enum MessageFild {
+pub enum MessageField {
     Syn(FieldSyn),
+    Id(FieldId),
     Kind(FieldKind),
     Size(FieldSize),
     Data(FieldData),
@@ -47,11 +48,12 @@ pub enum MessageFild {
 ///
 /// Socket Message
 pub struct Message {
-    fields: Vec<MessageFild>, 
-    state: Peekable<Box<dyn Iterator<Item = MessageFild>>>,
-    result: Vec<MessageFild>, 
+    fields: Vec<MessageField>, 
+    state: Peekable<Box<dyn Iterator<Item = MessageField>>>,
+    result: Vec<MessageField>, 
     start: usize,
     end: usize,
+    id: Option<u32>,
     size: Option<u32>,
     buffer: Vec<u8>,
 }
@@ -77,15 +79,16 @@ impl Message {
     ///
     /// Returns `Message` new instance 
     pub fn new(
-        fields: &[MessageFild]
+        fields: &[MessageField]
     ) -> Self {
         // let state = ;
         Self {
             fields: fields.to_owned(),
-            state: (Box::new(fields.to_owned().into_iter().cycle()) as Box<dyn Iterator<Item = MessageFild>>).peekable(),
+            state: (Box::new(fields.to_owned().into_iter().cycle()) as Box<dyn Iterator<Item = MessageField>>).peekable(),
             result: vec![],
             start: 0,
             end: 0,
+            id: None,
             size: None,
             buffer: vec![],
         }
@@ -93,19 +96,19 @@ impl Message {
     ///
     /// 
     pub fn restart(&mut self) {
-        self.state = (Box::new(self.fields.to_owned().into_iter().cycle()) as Box<dyn Iterator<Item = MessageFild>>).peekable();
+        self.state = (Box::new(self.fields.to_owned().into_iter().cycle()) as Box<dyn Iterator<Item = MessageField>>).peekable();
     }
     ///
     /// Returns message (by fields) read and parsed from socket 
     /// - Parse done by fields specified in the constructor, 
-    pub fn parse(&mut self, bytes: &[u8]) -> Result<Vec<MessageFild>, StrErr> {
+    pub fn parse(&mut self, bytes: &[u8]) -> Result<Vec<MessageField>, StrErr> {
         let bytes = [&std::mem::take(&mut self.buffer), bytes].concat();
         log::debug!("Message.parse | Input bytes: {:?}", bytes);
         loop {
             match self.state.peek() {
                 Some(state) => {
                     match state {
-                        MessageFild::Syn(field) => {
+                        MessageField::Syn(field) => {
                             log::debug!("Message.parse | Fild::Syn");
                             self.start = match bytes.iter().position(|b| *b == field.0) {
                                 Some(pos) => pos,
@@ -119,7 +122,35 @@ impl Message {
                             log::debug!("Message.parse | Fild::Syn pos: {}..{}", self.start, self.end);
                             // log::debug!("Message.parse | Fild::Syn bytes: {:?}", &bytes[self.start..self.end]);
                         }
-                        MessageFild::Kind(field) => {
+                        MessageField::Id(field) => {
+                            self.end = self.start + field.len();
+                            log::debug!("Message.parse | Fild::Id pos: {}..{}", self.start, self.end);
+                            // log::debug!("Message.parse | Fild::Size bytes: {:?}", &bytes[self.start..self.end]);
+                            match bytes.get(self.start..self.end) {
+                                Some(bytes) => {
+                                    log::debug!("Message.parse | Fild::Id bytes: {:?}", bytes);
+                                    match bytes.try_into() {
+                                        Ok(size_bytes) => {
+                                            log::debug!("Message.parse | Fild::Id bytes: {:?}", bytes);
+                                            let id= u32::from_be_bytes(size_bytes);
+                                            self.id = Some(id);
+                                            self.result.push(MessageField::Id(FieldId(id)));
+                                            self.state.next().unwrap();
+                                            self.start = self.end;
+                                        },
+                                        Err(err) => {
+                                            self.buffer = bytes.into();
+                                            return Err(format!("Message.parse | Filed 'Id' take error: {:#?}", err).into());
+                                        }
+                                    }
+                                }
+                                None => {
+                                    self.buffer = bytes.into();
+                                    return Err(format!("Message.parse | Filed 'Id' take error").into());
+                                }
+                            }
+                        }
+                        MessageField::Kind(field) => {
                             self.end = self.start + field.len();
                             log::debug!("Message.parse | Fild::Kind pos: {}..{}", self.start, self.end);
                             // log::debug!("Message.parse | Fild::Kind bytes: {:?}", &bytes[self.start..self.end]);
@@ -127,7 +158,7 @@ impl Message {
                                 Some(bytes) => match bytes.try_into() {
                                     Ok(bytes) => match MessageKind::from_bytes(bytes) {
                                         Ok(kind) => {
-                                            self.result.push(MessageFild::Kind(FieldKind(kind)));
+                                            self.result.push(MessageField::Kind(FieldKind(kind)));
                                             self.state.next().unwrap();
                                             self.start = self.end;
                                         },
@@ -147,7 +178,7 @@ impl Message {
                                 }
                             }
                         }
-                        MessageFild::Size(field) => {
+                        MessageField::Size(field) => {
                             self.end = self.start + field.len();
                             log::debug!("Message.parse | Fild::Size pos: {}..{}", self.start, self.end);
                             // log::debug!("Message.parse | Fild::Size bytes: {:?}", &bytes[self.start..self.end]);
@@ -159,7 +190,7 @@ impl Message {
                                             log::debug!("Message.parse | Fild::Size bytes: {:?}", bytes);
                                             let s= u32::from_be_bytes(size_bytes);
                                             self.size = Some(s);
-                                            self.result.push(MessageFild::Size(FieldSize(s)));
+                                            self.result.push(MessageField::Size(FieldSize(s)));
                                             self.state.next().unwrap();
                                             self.start = self.end;
                                         },
@@ -175,7 +206,7 @@ impl Message {
                                 }
                             }
                         }
-                        MessageFild::Data(_) => {
+                        MessageField::Data(_) => {
                             // log::debug!("Message.parse | Fild::Data");
                             match self.size {
                                 Some(size) => {
@@ -185,7 +216,7 @@ impl Message {
                                     match bytes.get(self.start..self.end) {
                                         Some(bytes) => match bytes.try_into() {
                                             Ok(data) => {
-                                                self.result.push(MessageFild::Data(FieldData(data)));
+                                                self.result.push(MessageField::Data(FieldData(data)));
                                                 self.state.next().unwrap();
                                                 return Ok(std::mem::take(&mut self.result));
                                             },
@@ -218,15 +249,16 @@ impl Message {
     }
     ///
     /// Returns message built according to specified fields and passed `bytes`
-    pub fn build(&mut self, bytes: &[u8]) -> Vec<u8> {
+    pub fn build(&mut self, bytes: &mut Vec<u8>, id: u32) -> Vec<u8> {
         let mut message = vec![];
         for field in &mut self.fields {
             match field {
-                MessageFild::Syn(field_syn) => message.push(field_syn.0),
-                MessageFild::Kind(field_kind) => message.extend(field_kind.to_bytes()),
-                MessageFild::Size(field_size) => message.extend(field_size.to_be_bytes(bytes.len() as u32)),
-                MessageFild::Data(_) => {
-                    message = [&message, bytes].concat();
+                MessageField::Syn(field_syn) => message.push(field_syn.0),
+                MessageField::Id(_) => message.extend(FieldId(id).to_be_bytes()),
+                MessageField::Kind(field_kind) => message.extend(field_kind.to_bytes()),
+                MessageField::Size(field_size) => message.extend(field_size.to_be_bytes(bytes.len() as u32)),
+                MessageField::Data(_) => {
+                    message.append(bytes);
                 }
             }
         }

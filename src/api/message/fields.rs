@@ -9,6 +9,22 @@ impl FieldSyn {
     }
 }
 ///
+/// Id field
+#[derive(Debug, Clone, PartialEq)]
+pub struct FieldId(pub u32);
+impl FieldId {
+    ///
+    /// Return the memory representation of this `value` as a byte array in big-endian (network) byte order.
+    pub fn to_be_bytes(&self) -> [u8; 4] {
+        self.0.to_be_bytes()
+    }
+    ///
+    /// Returns fiekd syze in bytes 
+    pub fn len(&self) -> usize {
+        size_of::<u32>()
+    }
+}
+///
 /// Kind field
 #[derive(Clone, PartialEq)]
 pub struct FieldKind(pub MessageKind);

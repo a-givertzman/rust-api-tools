@@ -1,4 +1,5 @@
 mod tests;
+mod debug;
 
 pub mod error;
 

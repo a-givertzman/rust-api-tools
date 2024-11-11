@@ -1,6 +1,6 @@
 use serde::{ser::SerializeStruct, Serialize, Serializer};
 use std::{io::{Read, Write}, net::{SocketAddr, TcpStream, ToSocketAddrs}, time::{Duration, Instant}};
-use crate::{api::message::{fields::{FieldData, FieldKind, FieldSize, FieldSyn}, message::{Message, MessageFild}, message_kind::MessageKind}, client::api_query::ApiQuery, error::str_err::StrErr};
+use crate::{api::message::{fields::{FieldData, FieldKind, FieldSize, FieldSyn}, message::{Message, MessageField}, message_kind::MessageKind}, client::api_query::ApiQuery, error::str_err::StrErr};
 
 ///
 /// - Holding single input queue
@@ -30,6 +30,7 @@ pub struct ApiRequest {
     debug: bool,
     connection: Option<(TcpStream, Message)>,
     timeout: Duration,
+    message_id: u32,
 }
 //
 //
@@ -57,6 +58,7 @@ impl ApiRequest {
             debug,
             connection: None,
             timeout: Duration::from_secs(10),
+            message_id: 0,
         }
     }
     ///
@@ -85,10 +87,10 @@ impl ApiRequest {
                             log::warn!("{}", message);
                         }
                         let message = Message::new(&[
-                            MessageFild::Syn(FieldSyn(Message::SYN)),
-                            MessageFild::Kind(FieldKind(MessageKind::String)),
-                            MessageFild::Size(FieldSize(4)),
-                            MessageFild::Data(FieldData(vec![]))
+                            MessageField::Syn(FieldSyn(Message::SYN)),
+                            MessageField::Kind(FieldKind(MessageKind::String)),
+                            MessageField::Size(FieldSize(4)),
+                            MessageField::Data(FieldData(vec![]))
                         ]);                        
                         Ok((stream, message))
                     },
@@ -103,15 +105,16 @@ impl ApiRequest {
     }
     ///
     /// Performs an API request with the parameters specified in the constructor
-    pub fn fetch(&mut self, keep_alive: bool) -> Result<Vec<u8>, StrErr>{
+    pub fn fetch(&mut self, keep_alive: bool) -> Result<Vec<u8>, StrErr> {
         match self.connect() {
             Ok((mut stream, mut message)) => {
                 self.query_id.add();
                 self.keep_alive = keep_alive;
-                match serde_json::to_string(&self) {
-                    Ok(query) => {
+                match serde_json::to_vec(&self) {
+                    Ok(mut query) => {
                         log::trace!("{}.fetch | query: \n\t{:?}", self.id, query);
-                        let bytes = message.build(query.as_bytes());
+                        self.message_id = (self.message_id % u32::MAX) + 1;
+                        let bytes = message.build(&mut query, self.message_id);
                         match stream.write(&bytes) {
                             Ok(_) => {
                                 self.read_message(stream, message)
@@ -141,10 +144,11 @@ impl ApiRequest {
                 self.query_id.add();
                 self.query = query.clone();
                 self.keep_alive = keep_alive;
-                match serde_json::to_string(&self) {
-                    Ok(query) => {
+                match serde_json::to_vec(&self) {
+                    Ok(mut query) => {
                         log::trace!("{}.fetch_with | query: \n\t{:?}", self.id, query);
-                        let bytes = message.build(query.as_bytes());
+                        self.message_id = (self.message_id % u32::MAX) + 1;
+                        let bytes = message.build(&mut query.as_mut(), self.message_id);
                         match stream.write(&bytes) {
                             Ok(_) => {
                                 self.read_message(stream, message)
@@ -181,7 +185,7 @@ impl ApiRequest {
                     log::trace!("{}.read_message |     read len: {:?}", self.id, len);
                     match message.parse(&buf[..len]) {
                         Ok(parsed) => match parsed.as_slice() {
-                            [ MessageFild::Kind(kind), MessageFild::Size(FieldSize(size)), MessageFild::Data(FieldData(data)) ] => {
+                            [ MessageField::Kind(kind), MessageField::Size(FieldSize(size)), MessageField::Data(FieldData(data)) ] => {
                                 log::debug!("{}.read_message | kind: {:?},  size: {},  data: {:?}", self.id, kind, size, data);
                                 match kind.0 {
                                     MessageKind::Any => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.id, kind),
