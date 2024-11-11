@@ -1,10 +1,10 @@
 #[cfg(test)]
 
 mod api_request {
-    use std::{collections::HashMap, process::Command, sync::{atomic::AtomicUsize, Once}};
+    use std::{collections::HashMap, process::Command, sync::{atomic::AtomicUsize, Once}, time::Duration};
     use serde_json::json;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use testing::session::teardown::Teardown;
+    use testing::{session::teardown::Teardown, stuff::max_test_duration::TestDuration};
     use crate::{
         api::reply::api_reply::ApiReply,
         client::{api_query::{ApiQuery, ApiQueryExecutable, ApiQueryKind, ApiQueryPython, ApiQuerySql}, api_request::ApiRequest}, 
@@ -163,12 +163,13 @@ mod api_request {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
         init_each();
         println!("");
-        let self_id = "test ApiRequest";
-        println!("{}", self_id);
+        let dbgid = "test ApiRequest";
+        println!("{}", dbgid);
+        let test_duration = TestDuration::new(dbgid, Duration::from_secs(10));
         let database = "test_api_query";
         let tmp_path = "/tmp/api-tools-test/api-server/";
         let git_repo = "https://github.com/a-givertzman/api-server.git";
-        let child_id = init_once(self_id, database, tmp_path, git_repo);
+        let child_id = init_once(dbgid, database, tmp_path, git_repo);
         // let teardown_once = || {
         //         let mut client = TestDatabasePostgres::connect_db(self_id, "postgres", "postgres", "localhost:5432", "").unwrap();
         //         TestDatabasePostgres::drop_db(self_id, &mut client, database).unwrap();
@@ -179,7 +180,7 @@ mod api_request {
         //         log::debug!("std: {:#?}", child.stdout);
         //     };
         let _teardown_once = || {
-            teardown_once(&self_id, &database, &tmp_path, child_id);
+            teardown_once(&dbgid, &database, &tmp_path, child_id);
         };
         let _teardown = Teardown::new(&TEARDOWN_COUNT, &|| {}, &_teardown_once);
         let port = "8080";     //TestSession::free_tcp_port_str();
@@ -225,7 +226,7 @@ mod api_request {
             // ),
         ];
         let mut request = ApiRequest::new(
-            self_id,
+            dbgid,
             &addtess,
             token, 
             ApiQuery::new(ApiQueryKind::Sql(ApiQuerySql::new("", "")), false),
@@ -240,7 +241,7 @@ mod api_request {
                     println!("\nreply: {:?}", reply);
                 },
                 Err(err) => {
-                    panic!("{} | Error: {:?}", self_id, err);
+                    panic!("{} | Error: {:?}", dbgid, err);
                 },
             };
             let result = json!(request);
@@ -248,5 +249,6 @@ mod api_request {
             assert!(result == target, "\n result: {:?}\n target: {:?}", result, target);
             println!("\n result: {:?}\n target: {:?}", result, target);
         }
+        test_duration.exit();
     }
 }
