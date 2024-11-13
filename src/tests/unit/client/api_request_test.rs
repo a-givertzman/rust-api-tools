@@ -31,12 +31,12 @@ mod api_request {
                     \t - Be sure local address '0.0.0.0:8080' is not busy before test executed
                     \t - Check '{}'",self_id, setup_sh
                 );
-                // let output = Command::new(setup_sh)
-                //     .arg(tmp_path)
-                //     .arg(git_repo)
-                //     .output()
-                //     .expect("Failed to exec setup-build.sh");
-                // log::debug!("{}.init_once | setup-build: {:?}",self_id, output);
+                let output = Command::new(setup_sh)
+                    .arg(tmp_path)
+                    .arg(git_repo)
+                    .output()
+                    .expect("Failed to exec setup-build.sh");
+                log::debug!("{}.init_once | setup-build: {:?}",self_id, output);
                 let run_sh = "./src/tests/unit/client/setup-run.sh";
                 let p = Command::new(run_sh)
                     .arg(tmp_path)

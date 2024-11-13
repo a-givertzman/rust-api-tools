@@ -7,5 +7,5 @@ tmpDir=$1
 cdir=$PWD
 cd $tmpDir
 echo "Executing ApiServer in '$tmpDir'..."
-# cargo run --release
+cargo run --release
 cd $cdir
