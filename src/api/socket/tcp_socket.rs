@@ -1,6 +1,6 @@
-use std::{io::{BufRead, BufReader, BufWriter, Read, Write}, net::{SocketAddr, TcpStream, ToSocketAddrs}, sync::Arc, time::{Duration, Instant}};
+use std::{io::{BufReader, BufWriter, Read, Write}, net::{SocketAddr, TcpStream, ToSocketAddrs}, sync::Arc, time::{Duration, Instant}};
 use crate::{
-    api::message::{fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn}, message::{Message, MessageField}, message_kind::MessageKind},
+    api::message::{fields::{FieldData, FieldId, FieldSize}, message::{Message, MessageField}, message_kind::MessageKind},
     debug::dbg_id::DbgId, error::str_err::StrErr,
 };
 use super::connection_status::IsConnected;
@@ -34,7 +34,7 @@ impl std::fmt::Debug for TcpSocket {
 impl TcpSocket {
     ///
     /// bytes to be read from socket at once
-    const BUF_LEN: usize = 1024 * 1;
+    const BUF_LEN: usize = 1024 * 4;
     ///
     /// Returns `TcpSocket` new instance
     pub fn new(dbid: &DbgId, address: impl ToSocketAddrs + std::fmt::Debug, message: Message, stream: Option<Arc<TcpStream>>) -> Self {
@@ -53,7 +53,7 @@ impl TcpSocket {
             msg_id: 0,
             connection: stream,
             buf: [0; Self::BUF_LEN],
-            timeout: Duration::from_secs(3),
+            timeout: Duration::from_secs(10),
         }
     }
     ///
@@ -131,15 +131,16 @@ impl TcpSocket {
         loop {
             match self.connect() {
                 Ok(stream) => {
+                    let mut stream = BufReader::new(stream.as_ref());
                     loop {
-                        let mut stream = BufReader::new(stream.as_ref());
                         match stream.read(&mut self.buf) {
                             Ok(len) => {
-                                log::trace!("{}.read_message |     read len: {:?}", self.dbgid, len);
+                                log::debug!("{}.read_message |     read len: {:?}", self.dbgid, len);
                                 match self.message.parse(&self.buf[..len]) {
                                     Ok(parsed) => match parsed.as_slice() {
                                         [ MessageField::Id(id), MessageField::Kind(kind), MessageField::Size(FieldSize(size)), MessageField::Data(FieldData(data)) ] => {
-                                            log::debug!("{}.read_message | kind: {:?},  size: {},  data: {:?}", self.dbgid, kind, size, data);
+                                            let dbg_bytes = if data.len() > 16 {format!("{:?} ...", &data[..16])} else {format!("{:?}", data)};
+                                            log::debug!("{}.read_message | id: {:?},  kind: {:?},  size: {},  data: {:?}", self.dbgid, id, kind, size, dbg_bytes);
                                             match kind.0 {
                                                 MessageKind::Any => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
                                                 MessageKind::Empty => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
@@ -233,8 +234,8 @@ impl TcpSocket {
     ///
     /// Returns Connection status dipending on IO Error
     fn parse_err(&self, err: std::io::Error) -> IsConnected<(), StrErr> {
-        log::warn!("{}.read_all | error reading from socket: {:?}", self.dbgid, err);
-        log::warn!("{}.read_all | error kind: {:?}", self.dbgid, err.kind());
+        log::warn!("{}.parse_err | error reading from socket: {:?}", self.dbgid, err);
+        log::warn!("{}.parse_err | error kind: {:?}", self.dbgid, err.kind());
         let str_err = format!("{}.parse_err | error: {:#?}", self.dbgid, err).into();
         match err.kind() {
             // std::io::ErrorKind::NotFound => todo!(),

@@ -123,36 +123,36 @@ impl Message {
     pub fn parse(&mut self, bytes: &[u8]) -> Result<Vec<MessageField>, StrErr> {
         let bytes = [&std::mem::take(&mut self.buffer), bytes].concat();
         let dbg_bytes = if bytes.len() > 16 {format!("{:?} ...", &bytes[..16])} else {format!("{:?}", bytes)};
-        log::debug!("Message.parse | Input bytes: {:?}", dbg_bytes);
+        log::debug!("{}.parse | Input bytes ({}): {:?}", self.dbgid, bytes.len(), dbg_bytes);
         loop {
             match self.state.peek() {
                 Some(state) => {
                     match state {
                         MessageField::Syn(field) => {
-                            log::debug!("Message.parse | Fild::Syn");
+                            log::debug!("{}.parse | Fild::Syn", self.dbgid);
                             self.start = match bytes.iter().position(|b| *b == field.0) {
                                 Some(pos) => pos,
                                 None => {
-                                    return Err(format!("Message.parse | Syn not found in the message: {:?}...", if bytes.len() > 16 { &bytes[..16] } else { &bytes } ).into());
+                                    return Err(format!("{}.parse | Syn not found in the message: {:?}...", self.dbgid, if bytes.len() > 16 { &bytes[..16] } else { &bytes } ).into());
                                 }
                             };
                             self.end = self.start + field.len();
                             self.state.next().unwrap();
                             self.start = self.end;
-                            log::debug!("Message.parse | Fild::Syn pos: {}..{}", self.start, self.end);
-                            // log::debug!("Message.parse | Fild::Syn bytes: {:?}", &bytes[self.start..self.end]);
+                            log::debug!("{}.parse | Fild::Syn pos: {}..{}", self.dbgid, self.start, self.end);
+                            // log::debug!("{}.parse | Fild::Syn bytes: {:?}", &bytes[self.start..self.end]);
                         }
                         MessageField::Id(field) => {
                             self.end = self.start + field.len();
-                            log::debug!("Message.parse | Fild::Id pos: {}..{}", self.start, self.end);
-                            // log::debug!("Message.parse | Fild::Size bytes: {:?}", &bytes[self.start..self.end]);
+                            log::debug!("{}.parse | Fild::Id pos: {}..{}", self.dbgid, self.start, self.end);
+                            // log::debug!("{}.parse | Fild::Size bytes: {:?}", &bytes[self.start..self.end]);
                             match bytes.get(self.start..self.end) {
                                 Some(bytes) => {
                                     let dbg_bytes = if bytes.len() > 16 {format!("{:?} ...", &bytes[..16])} else {format!("{:?}", bytes)};
-                                    log::debug!("Message.parse | Fild::Id bytes: {:?}", dbg_bytes);
+                                    log::debug!("{}.parse | Fild::Id bytes: {:?}", self.dbgid, dbg_bytes);
                                     match bytes.try_into() {
                                         Ok(id_bytes) => {
-                                            log::debug!("Message.parse | Fild::Id bytes: {:?}", id_bytes);
+                                            log::debug!("{}.parse | Fild::Id bytes: {:?}", self.dbgid, id_bytes);
                                             let id= u32::from_be_bytes(id_bytes);
                                             self.id = Some(id);
                                             self.result.push(MessageField::Id(FieldId(id)));
@@ -161,20 +161,20 @@ impl Message {
                                         },
                                         Err(err) => {
                                             self.buffer = bytes.into();
-                                            return Err(format!("Message.parse | Filed 'Id' take error: {:#?}", err).into());
+                                            return Err(format!("{}.parse | Filed 'Id' take error: {:#?}", self.dbgid, err).into());
                                         }
                                     }
                                 }
                                 None => {
                                     self.buffer = bytes.into();
-                                    return Err(format!("Message.parse | Filed 'Id' take error").into());
+                                    return Err(format!("{}.parse | Filed 'Id' take error", self.dbgid).into());
                                 }
                             }
                         }
                         MessageField::Kind(field) => {
                             self.end = self.start + field.len();
-                            log::debug!("Message.parse | Fild::Kind pos: {}..{}", self.start, self.end);
-                            // log::debug!("Message.parse | Fild::Kind bytes: {:?}", &bytes[self.start..self.end]);
+                            log::debug!("{}.parse | Fild::Kind pos: {}..{}", self.dbgid, self.start, self.end);
+                            // log::debug!("{}.parse | Fild::Kind bytes: {:?}", &bytes[self.start..self.end]);
                             match bytes.get(self.start..self.end) {
                                 Some(bytes) => match bytes.try_into() {
                                     Ok(bytes) => match MessageKind::from_bytes(bytes) {
@@ -185,30 +185,30 @@ impl Message {
                                         },
                                         Err(err) => {
                                             self.restart();
-                                            return Err(format!("Message.parse | Filed 'Kind' parse error: {:#?}", err).into())
+                                            return Err(format!("{}.parse | Filed 'Kind' parse error: {:#?}", self.dbgid, err).into())
                                         }
                                     }
                                     Err(err) => {
                                         self.buffer = bytes.into();
-                                        return Err(format!("Message.parse | Filed 'Kind' take error: {:#?}", err).into())
+                                        return Err(format!("{}.parse | Filed 'Kind' take error: {:#?}", self.dbgid, err).into())
                                     }
                                 }
                                 None => {
                                     self.buffer = bytes.into();
-                                    return Err(format!("Message.parse | Filed 'Kind' take error").into())
+                                    return Err(format!("{}.parse | Filed 'Kind' take error", self.dbgid).into())
                                 }
                             }
                         }
                         MessageField::Size(field) => {
                             self.end = self.start + field.len();
-                            log::debug!("Message.parse | Fild::Size pos: {}..{}", self.start, self.end);
-                            // log::debug!("Message.parse | Fild::Size bytes: {:?}", &bytes[self.start..self.end]);
+                            log::debug!("{}.parse | Fild::Size pos: {}..{}", self.dbgid, self.start, self.end);
+                            // log::debug!("{}.parse | Fild::Size bytes: {:?}", &bytes[self.start..self.end]);
                             match bytes.get(self.start..self.end) {
                                 Some(bytes) => {
-                                    log::debug!("Message.parse | Fild::Size bytes: {:?}", bytes);
+                                    log::debug!("{}.parse | Fild::Size bytes: {:?}", self.dbgid, bytes);
                                     match bytes.try_into() {
                                         Ok(size_bytes) => {
-                                            log::debug!("Message.parse | Fild::Size bytes: {:?}", size_bytes);
+                                            log::debug!("{}.parse | Fild::Size bytes: {:?}", self.dbgid, size_bytes);
                                             let s= u32::from_be_bytes(size_bytes);
                                             self.size = Some(s);
                                             self.result.push(MessageField::Size(FieldSize(s)));
@@ -217,23 +217,23 @@ impl Message {
                                         },
                                         Err(err) => {
                                             self.buffer = bytes.into();
-                                            return Err(format!("Message.parse | Filed 'Size' take error: {:#?}", err).into());
+                                            return Err(format!("{}.parse | Filed 'Size' take error: {:#?}", self.dbgid, err).into());
                                         }
                                     }
                                 }
                                 None => {
                                     self.buffer = bytes.into();
-                                    return Err(format!("Message.parse | Filed 'Size' take error").into());
+                                    return Err(format!("{}.parse | Filed 'Size' take error", self.dbgid).into());
                                 }
                             }
                         }
                         MessageField::Data(_) => {
-                            // log::debug!("Message.parse | Fild::Data");
+                            // log::debug!("{}.parse | Fild::Data");
                             match self.size {
                                 Some(size) => {
                                     self.end = self.start + (size as usize);
-                                    log::debug!("Message.parse | Fild::Data pos: {}..{}", self.start, self.end);
-                                    // log::debug!("Message.parse | Fild::Data bytes: {:?}", &bytes[self.start..self.end]);
+                                    log::debug!("{}.parse | Fild::Data pos: {}..{}", self.dbgid, self.start, self.end);
+                                    // log::debug!("{}.parse | Fild::Data bytes: {:?}", &bytes[self.start..self.end]);
                                     match bytes.get(self.start..self.end) {
                                         Some(bytes) => match bytes.try_into() {
                                             Ok(data) => {
@@ -243,19 +243,19 @@ impl Message {
                                             },
                                             Err(err) => {
                                                 self.buffer = bytes.into();
-                                                return Err(format!("Message.parse | Filed 'Data' take error: {:#?}", err).into());
+                                                return Err(format!("{}.parse | Filed 'Data' take error: {:#?}", self.dbgid, err).into());
                                             }
                                         }
                                         None => {
                                             self.buffer = bytes.into();
                                             return Ok(vec![]);
-                                            // return Err(format!("Message.parse | Filed 'Data' take error").into());
+                                            // return Err(format!("{}.parse | Filed 'Data' take error").into());
                                         }
                                     }
                                 }
                                 None => {
                                     self.restart();
-                                    return Err(format!("Message.parse | Field 'Data' can't be read because Filed 'Size' is not ready").into());
+                                    return Err(format!("{}.parse | Field 'Data' can't be read because Filed 'Size' is not ready", self.dbgid).into());
                                 }
                             }
                         }
@@ -263,7 +263,7 @@ impl Message {
                 }
                 None => {
                     self.restart();
-                    return Err(format!("Message.parse | State error").into());
+                    return Err(format!("{}.parse | State error", self.dbgid).into());
                 }
             }
         }

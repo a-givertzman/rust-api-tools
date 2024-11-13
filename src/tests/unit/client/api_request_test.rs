@@ -1,12 +1,13 @@
 #[cfg(test)]
 
 mod api_request {
-    use std::{collections::HashMap, process::Command, sync::{atomic::AtomicUsize, Once}, thread, time::Duration};
+    use std::{collections::HashMap, process::Command, sync::{atomic::AtomicUsize, Once}, thread, time::{Duration, Instant}};
     use serde_json::json;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
     use testing::{session::teardown::Teardown, stuff::max_test_duration::TestDuration};
     use crate::{
-        api::reply::api_reply::ApiReply, client::{api_query::{ApiQuery, ApiQueryExecutable, ApiQueryKind, ApiQueryPython, ApiQuerySql}, api_request::ApiRequest}, debug::dbg_id::DbgId, tests::unit::client::prepare_postgres::TestDatabasePostgres
+        api::reply::api_reply::ApiReply, client::{api_query::{ApiQuery, ApiQueryExecutable, ApiQueryKind, ApiQueryPython, ApiQuerySql}, api_request::ApiRequest},
+        debug::dbg_id::DbgId, tests::unit::client::prepare_postgres::TestDatabasePostgres,
     };
     ///    
     static INIT: Once = Once::new();
@@ -77,6 +78,8 @@ mod api_request {
         println!("");
         let dbgid = DbgId("test ApiRequest".into());
         println!("{}", dbgid);
+        let test_duration = TestDuration::new(&dbgid, Duration::from_secs(40));
+        test_duration.run().unwrap();
         let database = "test_api_query";
         let tmp_path = "/tmp/api-tools-test/api-server/";
         let git_repo = "https://github.com/a-givertzman/api-server.git";
@@ -154,18 +157,19 @@ mod api_request {
         }
         // let mut client = TestDatabasePostgres::connect_db(self_id, "postgres", "postgres", "localhost:5432", "").unwrap();
         // TestDatabasePostgres::drop_db(self_id, &mut client, database).unwrap();
+        test_duration.exit();
     }
     ///
     /// 
     #[test]
-    #[ignore = "reason"]
     fn debug_true() {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
         init_each();
         println!("");
         let dbgid = DbgId("test ApiRequest".into());
         println!("{}", dbgid);
-        let test_duration = TestDuration::new(&dbgid.0, Duration::from_secs(10));
+        let test_duration = TestDuration::new(&dbgid, Duration::from_secs(40));
+        test_duration.run().unwrap();
         let database = "test_api_query";
         let tmp_path = "/tmp/api-tools-test/api-server/";
         let git_repo = "https://github.com/a-givertzman/api-server.git";
@@ -240,6 +244,89 @@ mod api_request {
             assert!(result == target, "\n result: {:?}\n target: {:?}", result, target);
             println!("\n result: {:?}\n target: {:?}", result, target);
         }
+        test_duration.exit();
+        test_duration.exit();
+    }
+    ///
+    /// ApiRequest performance test
+    #[test]
+    fn performance() {
+        DebugSession::init(LogLevel::Debug, Backtrace::Short);
+        init_each();
+        println!("");
+        let dbgid = DbgId("test ApiRequest".into());
+        println!("{}", dbgid);
+        let test_duration = TestDuration::new(&dbgid, Duration::from_secs(40));
+        test_duration.run().unwrap();
+        let database = "test_api_query";
+        let tmp_path = "/tmp/api-tools-test/api-server/";
+        let git_repo = "https://github.com/a-givertzman/api-server.git";
+        let child_id = init_once(&dbgid, database, tmp_path, git_repo);
+        let _teardown_once = || {
+            teardown_once(&dbgid, &database, &tmp_path, child_id);
+        };
+        let _teardown = Teardown::new(&TEARDOWN_COUNT, &|| {}, &_teardown_once);
+        let port = "8080";     //TestSession::free_tcp_port_str();
+        let addtess = format!("0.0.0.0:{}", port);
+        let token = "123zxy456!@#";
+        let keep_alive = true;
+        let service_keep_alive = false;
+        let debug = false;
+        let test_data = [
+            (
+                ApiQuery::new(
+                    ApiQueryKind::Sql(ApiQuerySql::new(database, "select * from customer limit 4;")),
+                    service_keep_alive, 
+                ),
+                keep_alive,
+                r#"{"authToken":"123zxy456!@#","id":"1","sql":{"database":"test_api_query","sql":"select * from customer limit 4;"},"keepAlive":true,"debug":false}"#,
+                
+            ),
+            (
+                ApiQuery::new(
+                    ApiQueryKind::Sql(ApiQuerySql::new(database, "select * from customer limit 3;")),
+                    service_keep_alive, 
+                ),
+                keep_alive,
+                r#"{"authToken":"123zxy456!@#","id":"2","sql":{"database":"test_api_query","sql":"select * from customer limit 3;"},"keepAlive":true,"debug":false}"#,
+            ),
+        ];
+        let mut request = ApiRequest::new(
+            &dbgid,
+            &addtess,
+            token, 
+            ApiQuery::new(ApiQueryKind::Sql(ApiQuerySql::new("", "")), false),
+            true,
+            debug,
+        );
+        thread::sleep(Duration::from_secs(1));
+        let t_total = Instant::now();
+        let mut t: Instant;
+        let queries = 0..100;
+        for _ in queries.clone() {
+            for (query, keep_alive, target) in &test_data {
+                println!("\nrequest: {:?}", request);
+                t = Instant::now();
+                match request.fetch_with(&query, *keep_alive) {
+                    Ok(bytes) => {
+                        let reply = ApiReply::try_from(bytes);
+                        println!("\nreply: {:?}", reply);
+                    },
+                    Err(err) => {
+                        panic!("{} | Error: {:?}", dbgid, err);
+                    },
+                };
+                let result = json!(request);
+                let target: serde_json::Value = serde_json::from_str(target).unwrap();
+                // assert!(result == target, "\n result: {:?}\n target: {:?}", result, target);
+                println!("\n result: {:?}\n target: {:?}", result, target);
+                println!("Elapsed: {:?}", t.elapsed());
+            }
+        }
+        let queries_total = queries.len() * test_data.len();
+        println!("Total queries: {:?}", queries_total);
+        println!("Average elapsed per query: {:?}", t_total.elapsed() / queries_total as u32);
+        println!("Total elapsed: {:?}", t_total.elapsed());
         test_duration.exit();
     }
 }
