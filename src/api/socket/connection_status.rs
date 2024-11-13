@@ -1,6 +1,6 @@
 ///
 /// Connection status
-pub enum IsConnected {
-    Active(Vec<u8>),
-    Closed,
+pub enum IsConnected<T, E> {
+    Active(T),
+    Closed(E),
 }

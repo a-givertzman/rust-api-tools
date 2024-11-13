@@ -59,6 +59,22 @@ pub struct Message {
 }
 //
 //
+impl Clone for Message {
+    fn clone(&self) -> Self {
+        Self { 
+            fields: self.fields.clone(),
+            state: (Box::new(self.fields.to_owned().into_iter().cycle()) as Box<dyn Iterator<Item = MessageField>>).peekable(),
+            result: self.result.clone(),
+            start: self.start.clone(),
+            end: self.end.clone(),
+            id: self.id.clone(),
+            size: self.size.clone(),
+            buffer: self.buffer.clone(),
+        }
+    }
+}
+//
+//
 impl std::fmt::Debug for Message {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Message")

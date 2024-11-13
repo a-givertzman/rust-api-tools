@@ -1,4 +1,4 @@
-pub struct DbgId(String);
+pub struct DbgId(pub String);
 //
 //
 impl DbgId {
@@ -18,5 +18,12 @@ impl std::fmt::Display for DbgId {
 impl std::fmt::Debug for DbgId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+//
+//
+impl Into<String> for DbgId {
+    fn into(self) -> String {
+        self.0
     }
 }

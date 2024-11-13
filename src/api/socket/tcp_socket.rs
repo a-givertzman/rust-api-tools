@@ -1,17 +1,33 @@
-use std::{io::Read, net::TcpStream, time::{Duration, Instant}};
-
-use crate::{api::message::{fields::{FieldData, FieldSize}, message::{Message, MessageField}, message_kind::MessageKind}, debug::dbg_id::DbgId, error::str_err::StrErr};
-
+use std::{io::{BufRead, BufReader, BufWriter, Read, Write}, net::{SocketAddr, TcpStream, ToSocketAddrs}, sync::Arc, time::{Duration, Instant}};
+use crate::{
+    api::message::{fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn}, message::{Message, MessageField}, message_kind::MessageKind},
+    debug::dbg_id::DbgId, error::str_err::StrErr,
+};
 use super::connection_status::IsConnected;
-
 ///
 /// Basic Read / Write functional on the TCP Socket
 pub struct TcpSocket {
     dbgid: DbgId,
-    stream: TcpStream,
+    address: SocketAddr,
     message: Message,
+    msg_id: u32,
+    connection: Option<Arc<TcpStream>>,
     buf: [u8; Self::BUF_LEN],
     timeout: Duration,
+}
+//
+//
+impl std::fmt::Debug for TcpSocket {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TcpSocket")
+            .field("dbgid", &self.dbgid)
+            .field("address", &self.address)
+            .field("message", &self.message)
+            .field("connection", &self.connection)
+            // .field("stream", &self.stream)
+            // .field("buf", &self.buf)
+            .field("timeout", &self.timeout).finish()
+    }
 }
 //
 //
@@ -21,72 +37,166 @@ impl TcpSocket {
     const BUF_LEN: usize = 1024 * 1;
     ///
     /// Returns `TcpSocket` new instance
-    pub fn new(dbid: DbgId, stream: TcpStream, message: Message) -> Self {
+    pub fn new(dbid: &DbgId, address: impl ToSocketAddrs + std::fmt::Debug, message: Message, stream: Option<Arc<TcpStream>>) -> Self {
+        let dbgid = DbgId::with_parent(&dbid, "TcpSocket");
+        let address = match address.to_socket_addrs() {
+            Ok(mut addrs) => match addrs.next() {
+                Some(addr) => addr,
+                None => panic!("{}.new | Empty address: {:?}", dbgid, address),
+            },
+            Err(err) => panic!("{}.new | Address error: {:#?}", dbgid, err),
+        };
         Self {
-            dbgid: DbgId::with_parent(&dbid, "TcpSocket"),
-            stream,
+            dbgid,
+            address: address.into(),
             message,
+            msg_id: 0,
+            connection: stream,
             buf: [0; Self::BUF_LEN],
             timeout: Duration::from_secs(3),
         }
     }
     ///
-    /// Reads all available data from the TspStream until `Message` parsed successfully
-    /// - Returns payload bytes only (cuting header)
-    fn read_message(&mut self) -> Result<Vec<u8>, StrErr> {
-        // let mut buf = [0; Self::BUF_LEN];
+    /// Opens a connection to the TCP Socket and preparing the `Message`
+    pub fn connect(&mut self) -> Result<Arc<TcpStream>, StrErr> {
+        match &self.connection {
+            Some(stream) => {
+                Ok(Arc::clone(stream))
+            },
+            None => {
+                match TcpStream::connect(self.address) {
+                    Ok(stream) => {
+                        log::debug!("{}.connect | connected to: \n\t{:?}", self.dbgid, stream);
+                        if let Err(err) = stream.set_read_timeout(Some(self.timeout)) {
+                            let message = format!("{}.connect | set_read_timeout error: \n\t{:?}", self.dbgid, err);
+                            log::warn!("{}", message);
+                        }
+                        if let Err(err) = stream.set_write_timeout(Some(self.timeout)) {
+                            let message = format!("{}.connect | set_write_timeout error: \n\t{:?}", self.dbgid, err);
+                            log::warn!("{}", message);
+                        }
+                        let stream = Arc::new(stream);
+                        let stream_clone = Arc::clone(&stream);
+                        self.connection = Some(stream);
+                        Ok(stream_clone)
+                    },
+                    Err(err) => {
+                        let err = format!("{}.connect | Connection error: \n\t{:?}", self.dbgid, err);
+                        if log::max_level() >= log::LevelFilter::Trace {
+                            log::warn!("{}", err);
+                        }
+                        Err(err.into())
+                    }
+                }
+            },
+        }
+    }
+    pub fn send_message(&mut self, bytes: &[u8]) -> IsConnected<FieldId, StrErr> {
+        log::trace!("{}.send_message | bytes: {:#?}", self.dbgid, bytes);
         let time = Instant::now();
         loop {
-            match self.stream.read(&mut self.buf) {
-                Ok(len) => {
-                    log::trace!("{}.read_message |     read len: {:?}", self.dbgid, len);
-                    match self.message.parse(&self.buf[..len]) {
-                        Ok(parsed) => match parsed.as_slice() {
-                            [ MessageField::Kind(kind), MessageField::Size(FieldSize(size)), MessageField::Data(FieldData(data)) ] => {
-                                log::debug!("{}.read_message | kind: {:?},  size: {},  data: {:?}", self.dbgid, kind, size, data);
-                                match kind.0 {
-                                    MessageKind::Any => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                    MessageKind::Empty => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                    MessageKind::Bytes => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                    MessageKind::Bool => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                    MessageKind::U16 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                    MessageKind::U32 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                    MessageKind::U64 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                    MessageKind::I16 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                    MessageKind::I32 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                    MessageKind::I64 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                    MessageKind::F32 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                    MessageKind::F64 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                    MessageKind::String => return Ok(data.to_owned()),
-                                    MessageKind::Timestamp => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                    MessageKind::Duration => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                }
-                            }
-                            v if v.is_empty() => {}
-                            [..] => {
-                                let err = format!("{}.read_message | Unknown message kind {:?}", self.dbgid, parsed);
-                                log::warn!("{}", err);
-                                // return Err(err.into())
-                            }
+            match self.connect() {
+                Ok(stream) => {
+                    self.msg_id = (self.msg_id % u32::MAX) + 1;
+                    let msg_id = self.msg_id;
+                    let bytes = self.message.build(bytes, msg_id);
+                    match BufWriter::new(stream.as_ref()).write_all(&bytes) {
+                        Ok(_) => {
+                            return IsConnected::Active(FieldId(msg_id))
                         }
                         Err(err) => {
+                            let err = format!("{}.send_message | write to tcp stream error: {:?}", self.dbgid, err);
                             log::warn!("{}", err);
-                            // return Err(err.into())
-                        }
-                    };
-                    if len < Self::BUF_LEN {
-                        if len == 0 {
-                            return Err(format!("{}.read_message | tcp stream closed", self.dbgid).into());
+                            return IsConnected::Closed(StrErr(err));
                         }
                     }
                 }
                 Err(err) => {
-                    _ = self.parse_err(err);
+                    let err = format!("{}.send_message | Connection error: {:?}", self.dbgid, err);
+                    log::warn!("{}", err);
+                    if time.elapsed() > self.timeout {
+                        let err = format!("{}.send_message | Not connected in specified timeout ({:?})", self.dbgid, self.timeout);
+                        log::warn!("{}", err);
+                        return IsConnected::Closed(StrErr(err));
+                    };
                 }
             };
-            if time.elapsed() > self.timeout {
-                return Err(format!("{}.read_message | Valid message wasn`t received in specified timeout ({:?})", self.dbgid, self.timeout).into());
-            }
+        }
+    }
+    ///
+    /// Reads all available data from the TspStream until `Message` parsed successfully
+    /// - Returns payload bytes only (cuting header)
+    pub fn read_message(&mut self) -> IsConnected<(FieldId, Vec<u8>), StrErr> {
+        let time = Instant::now();
+        loop {
+            match self.connect() {
+                Ok(stream) => {
+                    loop {
+                        let mut stream = BufReader::new(stream.as_ref());
+                        match stream.read(&mut self.buf) {
+                            Ok(len) => {
+                                log::trace!("{}.read_message |     read len: {:?}", self.dbgid, len);
+                                match self.message.parse(&self.buf[..len]) {
+                                    Ok(parsed) => match parsed.as_slice() {
+                                        [ MessageField::Id(id), MessageField::Kind(kind), MessageField::Size(FieldSize(size)), MessageField::Data(FieldData(data)) ] => {
+                                            log::debug!("{}.read_message | kind: {:?},  size: {},  data: {:?}", self.dbgid, kind, size, data);
+                                            match kind.0 {
+                                                MessageKind::Any => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                                MessageKind::Empty => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                                MessageKind::Bytes => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                                MessageKind::Bool => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                                MessageKind::U16 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                                MessageKind::U32 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                                MessageKind::U64 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                                MessageKind::I16 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                                MessageKind::I32 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                                MessageKind::I64 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                                MessageKind::F32 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                                MessageKind::F64 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                                MessageKind::String => return IsConnected::Active((id.clone(), data.to_owned())),
+                                                MessageKind::Timestamp => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                                MessageKind::Duration => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                            }
+                                        }
+                                        v if v.is_empty() => {}
+                                        [..] => {
+                                            let err = format!("{}.read_message | Unknown message kind {:?}", self.dbgid, parsed);
+                                            log::warn!("{}", err);
+                                        }
+                                    }
+                                    Err(err) => {
+                                        log::warn!("{}", err);
+                                    }
+                                };
+                                if len < Self::BUF_LEN {
+                                    if len == 0 {
+                                        return IsConnected::Closed(format!("{}.read_message | tcp stream closed", self.dbgid).into());
+                                    }
+                                }
+                            }
+                            Err(err) => {
+                                if let IsConnected::Closed(err) = self.parse_err(err) {
+                                    return IsConnected::Closed(err);
+                                };
+                            }
+                        };
+                        if time.elapsed() > self.timeout {
+                            let err = format!("{}.read_message | No valid message was received in specified timeout ({:?})", self.dbgid, self.timeout);
+                            log::warn!("{}", err);
+                            return IsConnected::Active((FieldId(0), vec![]));
+                        }
+                    }
+                }
+                Err(err) => {
+                    let err = format!("{}.read_message | Connection error: {:?}", self.dbgid, err);
+                    log::warn!("{}", err);
+                    if time.elapsed() > self.timeout {
+                        let err = format!("{}.read_message | Not connected in specified timeout ({:?})", self.dbgid, self.timeout);
+                        log::warn!("{}", err);
+                        return IsConnected::Active((FieldId(0), vec![]));
+                    }
+                }
+            };
         }
     }
     // ///
@@ -122,24 +232,25 @@ impl TcpSocket {
     // }
     ///
     /// Returns Connection status dipending on IO Error
-    fn parse_err(&self, err: std::io::Error) -> IsConnected {
+    fn parse_err(&self, err: std::io::Error) -> IsConnected<(), StrErr> {
         log::warn!("{}.read_all | error reading from socket: {:?}", self.dbgid, err);
         log::warn!("{}.read_all | error kind: {:?}", self.dbgid, err.kind());
+        let str_err = format!("{}.parse_err | error: {:#?}", self.dbgid, err).into();
         match err.kind() {
             // std::io::ErrorKind::NotFound => todo!(),
-            std::io::ErrorKind::PermissionDenied => IsConnected::Closed,
-            std::io::ErrorKind::ConnectionRefused => IsConnected::Closed,
-            std::io::ErrorKind::ConnectionReset => IsConnected::Closed,
-            // std::io::ErrorKind::HostUnreachable => ConnectionStatus::Closed,
-            // std::io::ErrorKind::NetworkUnreachable => ConnectionStatus::Closed,
-            std::io::ErrorKind::ConnectionAborted => IsConnected::Closed,
-            std::io::ErrorKind::NotConnected => IsConnected::Closed,
-            std::io::ErrorKind::AddrInUse => IsConnected::Closed,
-            std::io::ErrorKind::AddrNotAvailable => IsConnected::Closed,
-            // std::io::ErrorKind::NetworkDown => ConnectionStatus::Closed,
-            std::io::ErrorKind::BrokenPipe => IsConnected::Closed,
+            std::io::ErrorKind::PermissionDenied => IsConnected::Closed(str_err),
+            std::io::ErrorKind::ConnectionRefused => IsConnected::Closed(str_err),
+            std::io::ErrorKind::ConnectionReset => IsConnected::Closed(str_err),
+            // std::io::ErrorKind::HostUnreachable => ConnectionStatus::Closed(str_err),
+            // std::io::ErrorKind::NetworkUnreachable => ConnectionStatus::Closed(str_err),
+            std::io::ErrorKind::ConnectionAborted => IsConnected::Closed(str_err),
+            std::io::ErrorKind::NotConnected => IsConnected::Closed(str_err),
+            std::io::ErrorKind::AddrInUse => IsConnected::Closed(str_err),
+            std::io::ErrorKind::AddrNotAvailable => IsConnected::Closed(str_err),
+            // std::io::ErrorKind::NetworkDown => ConnectionStatus::Closed(str_err),
+            std::io::ErrorKind::BrokenPipe => IsConnected::Closed(str_err),
             std::io::ErrorKind::AlreadyExists => todo!(),
-            std::io::ErrorKind::WouldBlock => IsConnected::Closed,
+            std::io::ErrorKind::WouldBlock => IsConnected::Closed(str_err),
             // std::io::ErrorKind::NotADirectory => todo!(),
             // std::io::ErrorKind::IsADirectory => todo!(),
             // std::io::ErrorKind::DirectoryNotEmpty => todo!(),
@@ -166,7 +277,7 @@ impl TcpSocket {
             std::io::ErrorKind::UnexpectedEof => todo!(),
             std::io::ErrorKind::OutOfMemory => todo!(),
             std::io::ErrorKind::Other => todo!(),
-            _ => IsConnected::Closed,
+            _ => IsConnected::Closed(str_err),
         }
     }
 }
