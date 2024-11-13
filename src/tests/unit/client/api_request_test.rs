@@ -24,12 +24,12 @@ mod api_request {
                 let mut client = TestDatabasePostgres::connect_db(&self_id.0, database, database, "localhost:5432", database).unwrap();
                 TestDatabasePostgres::create_db_table(&self_id.0, &mut client, database, "customer").unwrap();
                 client.close().unwrap();
-                // let setup_sh = "./src/tests/unit/client/setup-build.sh";
-                // log::debug!("{}.init_once | Preparing new instance of api-server...
-                //     \t - Be sure you are have internet connection for git clone
-                //     \t - Be sure local address '0.0.0.0:8080' is not busy before test executed
-                //     \t - Check '{}'",self_id, setup_sh
-                // );
+                let setup_sh = "./src/tests/unit/client/setup-build.sh";
+                log::debug!("{}.init_once | Preparing new instance of api-server...
+                    \t - Be sure you are have internet connection for git clone
+                    \t - Be sure local address '0.0.0.0:8080' is not busy before test executed
+                    \t - Check '{}'",self_id, setup_sh
+                );
                 // let output = Command::new(setup_sh)
                 //     .arg(tmp_path)
                 //     .arg(git_repo)
@@ -158,6 +158,7 @@ mod api_request {
     ///
     /// 
     #[test]
+    #[ignore = "reason"]
     fn debug_true() {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
         init_each();

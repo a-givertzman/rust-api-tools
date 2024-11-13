@@ -119,7 +119,8 @@ impl Message {
     /// - Parse done by fields specified in the constructor, 
     pub fn parse(&mut self, bytes: &[u8]) -> Result<Vec<MessageField>, StrErr> {
         let bytes = [&std::mem::take(&mut self.buffer), bytes].concat();
-        log::debug!("Message.parse | Input bytes: {:?}", bytes);
+        let dbg_bytes = if bytes.len() > 16 {format!("{:?} ...", &bytes[..16])} else {format!("{:?}", bytes)};
+        log::debug!("Message.parse | Input bytes: {:?}", dbg_bytes);
         loop {
             match self.state.peek() {
                 Some(state) => {
@@ -144,11 +145,12 @@ impl Message {
                             // log::debug!("Message.parse | Fild::Size bytes: {:?}", &bytes[self.start..self.end]);
                             match bytes.get(self.start..self.end) {
                                 Some(bytes) => {
-                                    log::debug!("Message.parse | Fild::Id bytes: {:?}", bytes);
+                                    let dbg_bytes = if bytes.len() > 16 {format!("{:?} ...", &bytes[..16])} else {format!("{:?}", bytes)};
+                                    log::debug!("Message.parse | Fild::Id bytes: {:?}", dbg_bytes);
                                     match bytes.try_into() {
-                                        Ok(size_bytes) => {
-                                            log::debug!("Message.parse | Fild::Id bytes: {:?}", bytes);
-                                            let id= u32::from_be_bytes(size_bytes);
+                                        Ok(id_bytes) => {
+                                            log::debug!("Message.parse | Fild::Id bytes: {:?}", id_bytes);
+                                            let id= u32::from_be_bytes(id_bytes);
                                             self.id = Some(id);
                                             self.result.push(MessageField::Id(FieldId(id)));
                                             self.state.next().unwrap();
@@ -203,7 +205,7 @@ impl Message {
                                     log::debug!("Message.parse | Fild::Size bytes: {:?}", bytes);
                                     match bytes.try_into() {
                                         Ok(size_bytes) => {
-                                            log::debug!("Message.parse | Fild::Size bytes: {:?}", bytes);
+                                            log::debug!("Message.parse | Fild::Size bytes: {:?}", size_bytes);
                                             let s= u32::from_be_bytes(size_bytes);
                                             self.size = Some(s);
                                             self.result.push(MessageField::Size(FieldSize(s)));
