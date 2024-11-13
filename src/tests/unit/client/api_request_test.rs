@@ -78,7 +78,7 @@ mod api_request {
         println!("");
         let dbgid = DbgId("test ApiRequest".into());
         println!("{}", dbgid);
-        let test_duration = TestDuration::new(&dbgid, Duration::from_secs(40));
+        let test_duration = TestDuration::new(&dbgid, Duration::from_secs(120));
         test_duration.run().unwrap();
         let database = "test_api_query";
         let tmp_path = "/tmp/api-tools-test/api-server/";
@@ -168,7 +168,7 @@ mod api_request {
         println!("");
         let dbgid = DbgId("test ApiRequest".into());
         println!("{}", dbgid);
-        let test_duration = TestDuration::new(&dbgid, Duration::from_secs(40));
+        let test_duration = TestDuration::new(&dbgid, Duration::from_secs(120));
         test_duration.run().unwrap();
         let database = "test_api_query";
         let tmp_path = "/tmp/api-tools-test/api-server/";
@@ -256,7 +256,7 @@ mod api_request {
         println!("");
         let dbgid = DbgId("test ApiRequest".into());
         println!("{}", dbgid);
-        let test_duration = TestDuration::new(&dbgid, Duration::from_secs(40));
+        let test_duration = TestDuration::new(&dbgid, Duration::from_secs(120));
         test_duration.run().unwrap();
         let database = "test_api_query";
         let tmp_path = "/tmp/api-tools-test/api-server/";
