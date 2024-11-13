@@ -33,7 +33,7 @@
 //!     - .., ...
 //! 
 use std::iter::Peekable;
-use crate::error::str_err::StrErr;
+use crate::{debug::dbg_id::DbgId, error::str_err::StrErr};
 use super::{fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn}, from_bytes::FromBytes, message_kind::MessageKind};
 /// 
 /// 
@@ -48,6 +48,7 @@ pub enum MessageField {
 ///
 /// Socket Message
 pub struct Message {
+    dbgid: DbgId,
     fields: Vec<MessageField>, 
     state: Peekable<Box<dyn Iterator<Item = MessageField>>>,
     result: Vec<MessageField>, 
@@ -62,6 +63,7 @@ pub struct Message {
 impl Clone for Message {
     fn clone(&self) -> Self {
         Self { 
+            dbgid: self.dbgid.clone(),
             fields: self.fields.clone(),
             state: (Box::new(self.fields.to_owned().into_iter().cycle()) as Box<dyn Iterator<Item = MessageField>>).peekable(),
             result: self.result.clone(),
@@ -95,10 +97,11 @@ impl Message {
     ///
     /// Returns `Message` new instance 
     pub fn new(
+        dbgid: &DbgId,
         fields: &[MessageField]
     ) -> Self {
-        // let state = ;
         Self {
+            dbgid: DbgId(format!("{}/Message", dbgid)),
             fields: fields.to_owned(),
             state: (Box::new(fields.to_owned().into_iter().cycle()) as Box<dyn Iterator<Item = MessageField>>).peekable(),
             result: vec![],

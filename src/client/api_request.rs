@@ -47,7 +47,7 @@ impl ApiRequest {
             Err(err) => panic!("TcpClientConnect({}).connect | Address error: {:#?}", dbgid, err),
         };
         let dbgid = DbgId(format!("{}/ApiRequest", dbgid));
-        let message = Message::new(&[
+        let message = Message::new(&dbgid, &[
             MessageField::Syn(FieldSyn(Message::SYN)),
             MessageField::Id(FieldId(4)),
             MessageField::Kind(FieldKind(MessageKind::String)),

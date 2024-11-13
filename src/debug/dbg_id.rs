@@ -27,3 +27,17 @@ impl Into<String> for DbgId {
         self.0
     }
 }
+//
+//
+impl Into<String> for &DbgId {
+    fn into(self) -> String {
+        self.0.clone()
+    }
+}
+//
+//
+impl Clone for DbgId {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}

@@ -4,7 +4,7 @@ mod message {
     use std::{sync::Once, time::Duration};
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::api::message::{fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn}, message::{Message, MessageField}, message_kind::MessageKind};
+    use crate::{api::message::{fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn}, message::{Message, MessageField}, message_kind::MessageKind}, debug::dbg_id::DbgId};
     ///
     ///
     static INIT: Once = Once::new();
@@ -27,9 +27,9 @@ mod message {
         init_once();
         init_each();
         log::debug!("");
-        let dbgid = "test";
+        let dbgid = DbgId("test".to_owned());
         log::debug!("\n{}", dbgid);
-        let test_duration = TestDuration::new(dbgid, Duration::from_secs(1));
+        let test_duration = TestDuration::new(&dbgid, Duration::from_secs(1));
         test_duration.run().unwrap();
         let test_data = [
             (
@@ -49,7 +49,7 @@ mod message {
                 vec![22, 0xff, 0xff, 0xff, 0xfe, MessageKind::String as u8, 00, 00, 00, 34, 81, 87, 69, 82, 84, 89, 85, 73, 79, 80, 123, 125, 65, 83, 68, 70, 71, 72, 74, 75, 76, 58, 34, 90, 88, 67, 86, 66, 78, 77, 60, 62, 63, 34],
             ),
         ];
-        let mut message = Message::new(&[
+        let mut message = Message::new(&dbgid, &[
             MessageField::Syn(FieldSyn(Message::SYN)),
             MessageField::Id(FieldId(4)),
             MessageField::Kind(FieldKind(MessageKind::String)),
