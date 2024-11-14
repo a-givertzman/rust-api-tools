@@ -288,11 +288,14 @@ impl Message {
 
 }
 ///
+/// 
+pub type Bytes = Vec<u8>;
+///
 /// Parse Message structure from bytes Interface 
 pub trait MessageParse<T> {
     ///
     /// Extracting some pattern from input `bytes`
-    fn parse(&mut self, bytes: &[u8]) -> Result<T, StrErr>;
+    fn parse(&mut self, bytes: Bytes) -> Result<T, StrErr>;
     ///
     /// Resets state to the initial
     fn reset(&mut self);
