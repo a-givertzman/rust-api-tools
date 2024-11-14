@@ -290,5 +290,10 @@ impl Message {
 ///
 /// Parse Message structure from bytes Interface 
 pub trait MessageParse<T> {
-    fn parse(&mut self, bytes: &[u8]) -> Result<Vec<MessageField>, StrErr>;
+    ///
+    /// Extracting some pattern from input `bytes`
+    fn parse(&mut self, bytes: &[u8]) -> Result<T, StrErr>;
+    ///
+    /// Resets state to the initial
+    fn reset(&mut self);
 }
