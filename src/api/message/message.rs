@@ -287,3 +287,8 @@ impl Message {
     }
 
 }
+///
+/// Parse Message structure from bytes Interface 
+pub trait MessageParse<T> {
+    fn parse(&mut self, bytes: &[u8]) -> Result<Vec<MessageField>, StrErr>;
+}
