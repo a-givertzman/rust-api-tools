@@ -8,6 +8,13 @@ impl FieldSyn {
         size_of::<u8>()
     }
 }
+impl Default for FieldSyn {
+    ///
+    /// By default `Syn = 22`
+    fn default() -> Self {
+        Self(22)
+    }
+}
 ///
 /// Id field
 #[derive(Debug, Clone, PartialEq)]

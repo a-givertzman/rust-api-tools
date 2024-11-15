@@ -1,7 +1,7 @@
 use serde::{ser::SerializeStruct, Serialize, Serializer};
 use std::{net::ToSocketAddrs, time::Duration};
 use crate::{
-    api::{message::{fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn}, message::{Message, MessageField}, message_kind::MessageKind}, socket::{connection_status::IsConnected, tcp_socket::TcpSocket}},
+    api::{message::{fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn}, message::{Bytes, Message, MessageField, MessageParse}, message_kind::MessageKind}, socket::{connection_status::IsConnected, tcp_socket::{TcpMessage, TcpSocket}}},
     client::api_query::ApiQuery, debug::dbg_id::DbgId, error::str_err::StrErr,
 };
 ///
@@ -47,13 +47,26 @@ impl ApiRequest {
             Err(err) => panic!("TcpClientConnect({}).connect | Address error: {:#?}", dbgid, err),
         };
         let dbgid = DbgId(format!("{}/ApiRequest", dbgid));
-        let message = Message::new(&dbgid, &[
-            MessageField::Syn(FieldSyn(Message::SYN)),
-            MessageField::Id(FieldId(4)),
-            MessageField::Kind(FieldKind(MessageKind::String)),
-            MessageField::Size(FieldSize(4)),
-            MessageField::Data(FieldData(vec![]))
-        ]);                        
+        struct FakeParse {}
+        impl MessageParse<(FieldId, MessageKind, FieldSize, Bytes)> for FakeParse {
+            fn parse(&mut self, _: Bytes) -> Result<(FieldId, MessageKind, FieldSize, Bytes), StrErr> {
+                todo!()
+            }
+            fn reset(&mut self) {
+                todo!()
+            }
+        }
+        let message = TcpMessage::new(
+            &dbgid,
+            vec![
+                MessageField::Syn(FieldSyn::default()),
+                MessageField::Id(FieldId(4)),
+                MessageField::Kind(FieldKind(MessageKind::String)),
+                MessageField::Size(FieldSize(4)),
+                MessageField::Data(FieldData(vec![]))
+            ],
+            FakeParse {},
+        );                        
         Self {
             socket: TcpSocket::new(&dbgid, address, message, None),
             dbgid,

@@ -4,7 +4,7 @@ mod parse_syn {
     use std::{sync::Once, time::Duration};
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::{api::message::{fields::{FieldId, FieldSyn}, message::{Message, MessageParse}, message_kind::MessageKind, parse_syn::ParseSyn}, debug::dbg_id::DbgId};
+    use crate::{api::message::{fields::{FieldId, FieldSyn}, message::MessageParse, message_kind::MessageKind, parse_syn::ParseSyn}, debug::dbg_id::DbgId};
     ///
     ///
     static INIT: Once = Once::new();
@@ -35,7 +35,7 @@ mod parse_syn {
             let data = data.as_bytes();
             let size = data.len() as u32;
             [
-                Message::SYN.to_be_bytes().as_slice(),
+                FieldSyn::default().0.to_be_bytes().as_slice(),
                 FieldId(id).to_be_bytes().as_slice(),
                 MessageKind::String.to_bytes(),
                 size.to_be_bytes().as_slice(),
@@ -68,7 +68,7 @@ mod parse_syn {
         ];
         let mut message = ParseSyn::new(
             &dbgid,
-            FieldSyn(Message::SYN),
+            FieldSyn::default(),
         );
         for (step, messages, target) in test_data {
             let mut result = vec![];
