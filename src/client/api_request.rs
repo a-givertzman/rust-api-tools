@@ -39,6 +39,7 @@ impl ApiRequest {
     /// Creates new instance of [ApiRequest]
     /// - [parent] - the ID if the parent entity
     pub fn new(dbgid: &DbgId, address: impl ToSocketAddrs + std::fmt::Debug, auth_token: impl Into<String>, query: ApiQuery, keep_alive: bool, debug: bool) -> Self {
+        let dbgid = DbgId(format!("{}/ApiRequest", dbgid));
         let address = match address.to_socket_addrs() {
             Ok(mut addr_iter) => match addr_iter.next() {
                 Some(addr) => addr,
@@ -46,7 +47,6 @@ impl ApiRequest {
             },
             Err(err) => panic!("TcpClientConnect({}).connect | Address error: {:#?}", dbgid, err),
         };
-        let dbgid = DbgId(format!("{}/ApiRequest", dbgid));
         let message = TcpMessage::new(
             &dbgid,
             vec![
