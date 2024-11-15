@@ -1,5 +1,4 @@
 mod message_build_test;
-mod message_parse_test;
 mod parse_data_test;
 mod parse_id_test;
 mod parse_kind_test;

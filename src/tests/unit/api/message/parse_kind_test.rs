@@ -66,7 +66,7 @@ mod parse_kind {
                 FieldId(4294967293), MessageKind::String, vec![0, 0, 0, 5, 50, 51, 52, 53, 54],
             ),
         ];
-        let mut parse_kind = ParseKind::new(
+        let mut message = ParseKind::new(
             &dbgid,
             FieldKind(MessageKind::Any),
             ParseId::new(
@@ -81,7 +81,7 @@ mod parse_kind {
         for (step, messages, target_id, target_kind, target_bytes) in test_data {
             let mut result_bytes = vec![];
             for bytes in messages {
-                match parse_kind.parse(bytes) {
+                match message.parse(bytes) {
                     Ok((id, kind, bytes)) => {
                         log::debug!("{} | step: {},  id: {:?},  kind: {:?},  bytes: {:?}", dbgid, step, id, kind, bytes);
                         let result = id;
@@ -95,7 +95,7 @@ mod parse_kind {
                     }
                 }
             }
-            parse_kind.reset();
+            message.reset();
             assert!(result_bytes == target_bytes, "step: {} \nresult: {:?}\ntarget: {:?}", step, result_bytes, target_bytes);
         }
         test_duration.exit();

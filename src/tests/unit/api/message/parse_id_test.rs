@@ -66,7 +66,7 @@ mod parse_id {
                 FieldId(4294967293), vec![40, 0, 0, 0, 5, 50, 51, 52, 53, 54],
             ),
         ];
-        let mut parse_id = ParseId::new(
+        let mut message = ParseId::new(
             &dbgid,
             FieldId(4),
             ParseSyn::new(
@@ -77,7 +77,7 @@ mod parse_id {
         for (step, messages, target_id, target_bytes) in test_data {
             let mut result_bytes = vec![];
             for bytes in messages {
-                match parse_id.parse(bytes) {
+                match message.parse(bytes) {
                     Ok((id, bytes)) => {
                         log::debug!("{} | step: {},  id: {:?},  bytes: {:?}", dbgid, step, id, bytes);
                         let result = id;
@@ -89,7 +89,7 @@ mod parse_id {
                     }
                 }
             }
-            parse_id.reset();
+            message.reset();
             assert!(result_bytes == target_bytes, "step: {} \nresult: {:?}\ntarget: {:?}", step, result_bytes, target_bytes);
         }
         test_duration.exit();

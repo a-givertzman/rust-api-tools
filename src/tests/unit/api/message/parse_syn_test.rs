@@ -66,14 +66,14 @@ mod parse_syn {
                 vec![255, 255, 255, 253, 40, 0, 0, 0, 5, 50, 51, 52, 53, 54],
             ),
         ];
-        let mut parse_syn = ParseSyn::new(
+        let mut message = ParseSyn::new(
             &dbgid,
             FieldSyn(Message::SYN),
         );
         for (step, messages, target) in test_data {
             let mut result = vec![];
             for bytes in messages {
-                match parse_syn.parse(bytes) {
+                match message.parse(bytes) {
                     Ok(bytes) => {
                         log::debug!("{} | step: {},  bytes: {:?}", dbgid, step, bytes);
                         // assert!(result == target, "step: {} \nresult: {:?}\ntarget: {:?}", step, result, target);
@@ -84,7 +84,7 @@ mod parse_syn {
                     }
                 }
             }
-            parse_syn.reset();
+            message.reset();
             assert!(result == target, "step: {} \nresult: {:?}\ntarget: {:?}", step, result, target);
         }
         test_duration.exit();
