@@ -75,7 +75,7 @@ impl ApiRequest {
                     ),
                 ),
             ),
-        );                        
+        );
         Self {
             socket: TcpSocket::new(&dbgid, address, message, None),
             dbgid,
