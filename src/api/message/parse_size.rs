@@ -32,30 +32,32 @@ impl MessageParse<(FieldId, MessageKind, FieldSize, Bytes)> for ParseSize {
     /// - returns `Id`, `Kind`, `Size` & `Bytes` following by the `Size`
     /// - call this method multiple times, until the end of message
     fn parse(&mut self, bytes: Bytes) -> Result<(FieldId, MessageKind, FieldSize, Bytes), StrErr> {
-        let bytes = [std::mem::take(&mut self.buffer), bytes].concat();
         match self.field.parse(bytes) {
-            Ok((id, kind, bytes)) => match &self.value {
-                Some((id, kind, size)) => Ok((id.clone(), kind.clone(), size.clone(), bytes)),
-                None => {
-                    match bytes.get(..self.conf.len()) {
-                        Some(size_bytes) => {
-                            let dbg_bytes = if size_bytes.len() > 16 {format!("{:?}...", &size_bytes[..16])} else {format!("{:?}", size_bytes)};
-                            log::debug!("{}.parse | size_bytes: {:?}", self.dbgid, dbg_bytes);
-                            match size_bytes.try_into() {
-                                Ok(size_bytes) => {
-                                    let size= u32::from_be_bytes(size_bytes);
-                                    self.value = Some((id.clone(), kind.clone(), FieldSize(size)));
-                                    Ok((id, kind, FieldSize(size), bytes[self.conf.len()..].to_vec()))
-                                },
-                                Err(err) => {
-                                    self.buffer = size_bytes.into();
-                                    Err(format!("{}.parse | Parse error: {:#?}", self.dbgid, err).into())
+            Ok((id, kind, bytes)) => {
+                let bytes = [std::mem::take(&mut self.buffer), bytes].concat();
+                match &self.value {
+                    Some((id, kind, size)) => Ok((id.clone(), kind.clone(), size.clone(), bytes)),
+                    None => {
+                        match bytes.get(..self.conf.len()) {
+                            Some(size_bytes) => {
+                                let dbg_bytes = if size_bytes.len() > 16 {format!("{:?}...", &size_bytes[..16])} else {format!("{:?}", size_bytes)};
+                                log::debug!("{}.parse | size_bytes: {:?}", self.dbgid, dbg_bytes);
+                                match size_bytes.try_into() {
+                                    Ok(size_bytes) => {
+                                        let size= u32::from_be_bytes(size_bytes);
+                                        self.value = Some((id.clone(), kind.clone(), FieldSize(size)));
+                                        Ok((id, kind, FieldSize(size), bytes[self.conf.len()..].to_vec()))
+                                    },
+                                    Err(err) => {
+                                        self.buffer = size_bytes.into();
+                                        Err(format!("{}.parse | Parse error: {:#?}", self.dbgid, err).into())
+                                    }
                                 }
                             }
-                        }
-                        None => {
-                            self.buffer.extend_from_slice(&bytes);
-                            Err(format!("{}.parse | Take error", self.dbgid).into())
+                            None => {
+                                self.buffer.extend_from_slice(&bytes);
+                                Err(format!("{}.parse | Take error", self.dbgid).into())
+                            }
                         }
                     }
                 }

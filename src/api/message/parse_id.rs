@@ -32,30 +32,32 @@ impl MessageParse<(FieldId, Bytes)> for ParseId {
     /// - returns Id & bytes following by the `Id`
     /// - call this method multiple times, until the end of message
     fn parse(&mut self, bytes: Bytes) -> Result<(FieldId, Bytes), StrErr> {
-        let bytes = [std::mem::take(&mut self.buffer), bytes].concat();
         match self.field.parse(bytes) {
-            Ok(bytes) => match &self.value {
-                Some(id) => Ok((id.to_owned(), bytes)),
-                None => {
-                    match bytes.get(..self.conf.len()) {
-                        Some(id_bytes) => {
-                            let dbg_bytes = if id_bytes.len() > 16 {format!("{:?}...", &id_bytes[..16])} else {format!("{:?}", id_bytes)};
-                            log::debug!("{}.parse | id_bytes: {:?}", self.dbgid, dbg_bytes);
-                            match id_bytes.try_into() {
-                                Ok(id_bytes) => {
-                                    let id= u32::from_be_bytes(id_bytes);
-                                    self.value = Some(FieldId(id));
-                                    Ok((FieldId(id), bytes[self.conf.len()..].to_vec()))
-                                },
-                                Err(err) => {
-                                    self.buffer = id_bytes.into();
-                                    Err(format!("{}.parse | Parse error: {:#?}", self.dbgid, err).into())
+            Ok(bytes) => {
+                let bytes = [std::mem::take(&mut self.buffer), bytes].concat();
+                match &self.value {
+                    Some(id) => Ok((id.to_owned(), bytes)),
+                    None => {
+                        match bytes.get(..self.conf.len()) {
+                            Some(id_bytes) => {
+                                let dbg_bytes = if id_bytes.len() > 16 {format!("{:?}...", &id_bytes[..16])} else {format!("{:?}", id_bytes)};
+                                log::debug!("{}.parse | id_bytes: {:?}", self.dbgid, dbg_bytes);
+                                match id_bytes.try_into() {
+                                    Ok(id_bytes) => {
+                                        let id= u32::from_be_bytes(id_bytes);
+                                        self.value = Some(FieldId(id));
+                                        Ok((FieldId(id), bytes[self.conf.len()..].to_vec()))
+                                    },
+                                    Err(err) => {
+                                        self.buffer = id_bytes.into();
+                                        Err(format!("{}.parse | Parse error: {:#?}", self.dbgid, err).into())
+                                    }
                                 }
                             }
-                        }
-                        None => {
-                            self.buffer.extend_from_slice(&bytes);
-                            Err(format!("{}.parse | Take error", self.dbgid).into())
+                            None => {
+                                self.buffer.extend_from_slice(&bytes);
+                                Err(format!("{}.parse | Take error", self.dbgid).into())
+                            }
                         }
                     }
                 }

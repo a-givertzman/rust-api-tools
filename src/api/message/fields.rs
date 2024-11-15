@@ -51,12 +51,17 @@ impl std::fmt::Debug for FieldKind {
 pub struct FieldSize(pub u32);
 impl FieldSize {
     ///
+    /// Returns contained size of `Data` field
+    pub fn size(&self) -> usize {
+        self.0 as usize
+    }
+    ///
     /// Return the memory representation of this `value` as a byte array in big-endian (network) byte order.
     pub fn to_be_bytes(&self, value: u32) -> [u8; 4] {
         value.to_be_bytes()
     }
     ///
-    /// Returns fiekd syze in bytes 
+    /// Returns field size in bytes 
     pub fn len(&self) -> usize {
         size_of::<u32>()
     }
