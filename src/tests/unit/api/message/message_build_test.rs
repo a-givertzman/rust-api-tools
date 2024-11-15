@@ -20,7 +20,7 @@ mod message {
     ///  - ...
     fn init_each() -> () {}
     ///
-    /// Testing such `Message.build`
+    /// Testing [Message].build
     #[test]
     fn build() {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);

@@ -1,10 +1,10 @@
 #[cfg(test)]
 
-mod parse_data {
+mod message {
     use std::{sync::Once, time::Duration};
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::{api::message::{fields::{FieldId, FieldKind, FieldSize, FieldSyn}, message::MessageParse, message_kind::MessageKind, parse_data::ParseData, parse_id::ParseId, parse_kind::ParseKind, parse_size::ParseSize, parse_syn::ParseSyn}, debug::dbg_id::DbgId};
+    use crate::{api::message::{fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn}, message::{Message, MessageField, MessageParse}, message_kind::MessageKind, parse_data::ParseData, parse_id::ParseId, parse_kind::ParseKind, parse_size::ParseSize, parse_syn::ParseSyn}, debug::dbg_id::DbgId};
     ///
     ///
     static INIT: Once = Once::new();
@@ -20,7 +20,7 @@ mod parse_data {
     ///  - ...
     fn init_each() -> () {}
     ///
-    /// Testing [ParseSyn.parse]
+    /// Testing [Message].parse
     #[test]
     fn parse() {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
@@ -232,27 +232,30 @@ mod parse_data {
                 (FieldId(4294967285), field_kind.clone(), FieldSize(4), "123N".as_bytes().to_vec()),
             ),
         ];
-        // let mut message = Message::new(&dbgid, &[
-        //     MessageField::Syn(FieldSyn(Message::SYN)),
-        //     MessageField::Id(FieldId(4)),
-        //     MessageField::Kind(FieldKind(MessageKind::String)),
-        //     MessageField::Size(FieldSize(4)),
-        //     MessageField::Data(FieldData(vec![]))
-        // ]);
-        let mut message = ParseData::new(
+        let mut message = Message::new(
             &dbgid,
-            ParseSize::new(
+            vec![
+                MessageField::Syn(FieldSyn::default()),
+                MessageField::Id(FieldId(4)),
+                MessageField::Kind(FieldKind(MessageKind::String)),
+                MessageField::Size(FieldSize(4)),
+                MessageField::Data(FieldData(vec![]))
+            ],
+            ParseData::new(
                 &dbgid,
-                FieldSize(4),
-                ParseKind::new(
+                ParseSize::new(
                     &dbgid,
-                    FieldKind(MessageKind::Any),
-                    ParseId::new(
+                    FieldSize(4),
+                    ParseKind::new(
                         &dbgid,
-                        FieldId(4),
-                        ParseSyn::new(
+                        FieldKind(MessageKind::Any),
+                        ParseId::new(
                             &dbgid,
-                            FieldSyn::default(),
+                            FieldId(4),
+                            ParseSyn::new(
+                                &dbgid,
+                                FieldSyn::default(),
+                            ),
                         ),
                     ),
                 ),

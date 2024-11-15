@@ -1,5 +1,5 @@
-use crate::{api::message::{from_bytes::FromBytes, message_kind::MessageKind}, debug::dbg_id::DbgId, error::str_err::StrErr};
-use super::{fields::{FieldId, FieldKind, FieldSize}, message::{Bytes, MessageParse}};
+use crate::{api::message::message_kind::MessageKind, debug::dbg_id::DbgId, error::str_err::StrErr};
+use super::{fields::{FieldId, FieldSize}, message::{Bytes, MessageParse}};
 ///
 /// Extracting `Size` field from the input bytes
 pub struct ParseSize {

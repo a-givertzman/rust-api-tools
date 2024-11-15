@@ -64,17 +64,7 @@ pub struct Message<T> {
     build: Vec<MessageField>, 
     parse: Box<dyn MessageParse<T>>,
 }
-//
-//
-// impl<T> Clone for Message<T> {
-//     fn clone(&self) -> Self {
-//         Self { 
-//             dbgid: self.dbgid.clone(),
-//             build: self.build.clone(),
-//             parse: self.parse.clone(),
-//         }
-//     }
-// }
+
 //
 //
 impl<T> std::fmt::Debug for Message<T> {
@@ -101,17 +91,6 @@ impl<T> Message<T> {
             parse: Box::new(parse),
         }
     }
-    // ///
-    // /// 
-    // pub fn restart(&mut self) {
-    //     self.state = (Box::new(self.build.to_owned().into_iter().cycle()) as Box<dyn Iterator<Item = MessageField>>).peekable();
-    // }
-    // ///
-    // /// Returns message (by fields) read and parsed from socket 
-    // /// - Parse done by fields specified in the constructor, 
-    // pub fn parse(&mut self, bytes: &[u8]) -> Result<T, StrErr> {
-
-    // }
     ///
     /// Returns message built according to specified fields and passed `bytes`
     pub fn build(&mut self, bytes: &[u8], id: u32) -> Vec<u8> {
@@ -139,11 +118,11 @@ impl<T> MessageParse<T> for Message<T> {
     /// - returns `Id`, `Kind`, `Size` & `Bytes` following by the `Size`
     /// - call this method multiple times, until the end of message
     fn parse(&mut self, bytes: Bytes) -> Result<T, StrErr> {
-        todo!()
+        self.parse.parse(bytes)
     }
     //
     //
     fn reset(&mut self) {
-        todo!()
+        self.parse.reset()
     }
 }
