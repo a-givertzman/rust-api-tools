@@ -95,6 +95,8 @@ impl MessageKind {
     }
 }
 impl FromBytes for MessageKind {
+    ///
+    /// Returns [MessageKind] converted from `bytes`
     fn from_bytes(bytes: &[u8]) -> Result<Self, StrErr> {
         match bytes {
             [Self::ANY] => Ok(MessageKind::Any),

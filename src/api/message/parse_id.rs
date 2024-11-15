@@ -24,6 +24,8 @@ impl ParseId {
         }
     }
 }
+//
+//
 impl MessageParse<(FieldId, Bytes)> for ParseId {
     ///
     /// Extracting `Id` field from the input bytes
@@ -37,24 +39,23 @@ impl MessageParse<(FieldId, Bytes)> for ParseId {
                 None => {
                     match bytes.get(..self.conf.len()) {
                         Some(id_bytes) => {
-                            let dbg_bytes = if id_bytes.len() > 16 {format!("{:?} ...", &id_bytes[..16])} else {format!("{:?}", id_bytes)};
-                            log::debug!("{}.parse | Fild::Id bytes: {:?}", self.dbgid, dbg_bytes);
+                            let dbg_bytes = if id_bytes.len() > 16 {format!("{:?}...", &id_bytes[..16])} else {format!("{:?}", id_bytes)};
+                            log::debug!("{}.parse | id_bytes: {:?}", self.dbgid, dbg_bytes);
                             match id_bytes.try_into() {
                                 Ok(id_bytes) => {
-                                    log::debug!("{}.parse | Fild::Id bytes: {:?}", self.dbgid, id_bytes);
                                     let id= u32::from_be_bytes(id_bytes);
                                     self.value = Some(FieldId(id));
                                     Ok((FieldId(id), bytes[self.conf.len()..].to_vec()))
                                 },
                                 Err(err) => {
                                     self.buffer = id_bytes.into();
-                                    Err(format!("{}.parse | Filed 'Id' take error: {:#?}", self.dbgid, err).into())
+                                    Err(format!("{}.parse | Parse error: {:#?}", self.dbgid, err).into())
                                 }
                             }
                         }
                         None => {
                             self.buffer.extend_from_slice(&bytes);
-                            Err(format!("{}.parse | Filed 'Id' take error", self.dbgid).into())
+                            Err(format!("{}.parse | Take error", self.dbgid).into())
                         }
                     }
                 }
@@ -65,8 +66,8 @@ impl MessageParse<(FieldId, Bytes)> for ParseId {
     ///
     /// Resets state to the initial
     fn reset(&mut self) {
+        self.field.reset();
         self.value = None;
         self.buffer.clear();
-        self.field.reset();
     }
 }

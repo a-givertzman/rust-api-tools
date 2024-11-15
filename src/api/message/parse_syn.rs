@@ -21,6 +21,8 @@ impl ParseSyn {
         }
     }
 }
+//
+//
 impl MessageParse<Vec<u8>> for ParseSyn {
     ///
     /// Extracting `Syn` symbol from the input bytes
@@ -41,8 +43,8 @@ impl MessageParse<Vec<u8>> for ParseSyn {
                         }
                     }
                     None => {
-                        let dbg_bytes = if bytes.len() > 16 { &bytes[..16] } else { &bytes };
-                        Err(format!("{}.parse | Syn not found in the message: {:?}...", self.dbgid, dbg_bytes ).into())
+                        let dbg_bytes = if bytes.len() > 16 { format!("{:?}...", &bytes[..16]) } else { format!("{:?}", bytes) };
+                        Err(format!("{}.parse | Syn not found in message: {:?}", self.dbgid, dbg_bytes ).into())
                     }
                 }
             }
