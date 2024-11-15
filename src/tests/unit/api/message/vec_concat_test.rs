@@ -4,7 +4,6 @@ mod message {
     use std::{sync::Once, time::{Duration, Instant}};
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::api::message::{fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn}, message::{Message, MessageField}, message_kind::MessageKind};
     ///
     ///
     static INIT: Once = Once::new();
@@ -20,8 +19,9 @@ mod message {
     ///  - ...
     fn init_each() -> () {}
     ///
-    /// Testing such `Message.parse`
+    /// Testing `Vec concatinations`
     #[test]
+    #[ignore = "Performance test ignored"]
     fn parse() {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
         init_once();
@@ -34,7 +34,7 @@ mod message {
         let mut t: Instant = Instant::now();
         //           18446744073709551615
         // let mut src = (0..11111111111111111111).collect();
-        let mut src: Vec<u64> = (0..1_111_111).collect();
+        let src: Vec<u64> = (0..1_111_111).collect();
         let mut dest1: Vec<u64> = vec![];
         let mut dest2: Vec<u64> = vec![];
         // append(&mut t, &mut src.clone(), &mut dest2);
@@ -43,7 +43,7 @@ mod message {
         // append(&mut t, &mut src.clone(), &mut dest2);
         extend_from_slice(&mut t, &src.clone(), &mut dest1);
         extend(&mut t, src.clone(), &mut dest1);
-        // append(&mut t, &mut src.clone(), &mut dest2);
+        append(&mut t, &mut src.clone(), &mut dest2);
         extend_from_slice(&mut t, &src.clone(), &mut dest1);
         extend(&mut t, src.clone(), &mut dest1);
 

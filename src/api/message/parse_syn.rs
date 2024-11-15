@@ -34,6 +34,7 @@ impl MessageParse<Vec<u8>> for ParseSyn {
             None => {
                 match bytes.iter().position(|b| *b == self.conf.0) {
                     Some(pos) => {
+                        // log::debug!("{} | bytes: {:?}", self.dbgid, bytes);
                         match bytes.get((pos + 1)..) {
                             Some(bytes) => {
                                 self.value = Some(());
