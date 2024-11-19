@@ -6,7 +6,7 @@ pub struct ParseSize {
     dbgid: DbgId,
     conf: FieldSize,
     field: Box<dyn MessageParse<(FieldId, MessageKind, Bytes)>>,
-    value: Option<(FieldId, MessageKind, FieldSize)>,
+    value: Option<FieldSize>,
     buffer: Bytes,
 }
 //
@@ -36,7 +36,7 @@ impl MessageParse<(FieldId, MessageKind, FieldSize, Bytes)> for ParseSize {
             Ok((id, kind, bytes)) => {
                 let bytes = [std::mem::take(&mut self.buffer), bytes].concat();
                 match &self.value {
-                    Some((id, kind, size)) => Ok((id.clone(), kind.clone(), size.clone(), bytes)),
+                    Some(size) => Ok((id.clone(), kind.clone(), size.clone(), bytes)),
                     None => {
                         match bytes.get(..self.conf.len()) {
                             Some(size_bytes) => {
@@ -45,7 +45,7 @@ impl MessageParse<(FieldId, MessageKind, FieldSize, Bytes)> for ParseSize {
                                 match size_bytes.try_into() {
                                     Ok(size_bytes) => {
                                         let size= u32::from_be_bytes(size_bytes);
-                                        self.value = Some((id.clone(), kind.clone(), FieldSize(size)));
+                                        self.value = Some(FieldSize(size));
                                         Ok((id, kind, FieldSize(size), bytes[self.conf.len()..].to_vec()))
                                     },
                                     Err(err) => {

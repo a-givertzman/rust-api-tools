@@ -6,6 +6,7 @@ pub struct ParseData {
     dbgid: DbgId,
     field: Box<dyn MessageParse<(FieldId, MessageKind, FieldSize, Bytes)>>,
     buffer: Bytes,
+    remains: Bytes,
 }
 //
 //
@@ -17,6 +18,7 @@ impl ParseData {
             dbgid: DbgId(format!("{}/ParseData", dbgid)),
             field: Box::new(field),
             buffer: vec![],
+            remains: vec![],
         }
     }
 }
@@ -28,6 +30,7 @@ impl MessageParse<(FieldId, MessageKind, FieldSize, Bytes)> for ParseData {
     /// - returns `Id`, `Kind`, `Size` & `Bytes` following by the `Size`
     /// - call this method multiple times, until the end of message
     fn parse(&mut self, bytes: Bytes) -> Result<(FieldId, MessageKind, FieldSize, Bytes), StrErr> {
+        let bytes = [std::mem::take(&mut self.remains), bytes].concat();
         match self.field.parse(bytes) {
             Ok((id, kind, size, bytes)) => {
                 let bytes = [std::mem::take(&mut self.buffer), bytes].concat();
@@ -36,7 +39,7 @@ impl MessageParse<(FieldId, MessageKind, FieldSize, Bytes)> for ParseData {
                         let dbg_bytes = if data_bytes.len() > 16 {format!("{:?}...", &data_bytes[..16])} else {format!("{:?}", data_bytes)};
                         log::debug!("{}.parse | data_bytes: {:?}", self.dbgid, dbg_bytes);
                         if let Some(bytes) = bytes.get(size.size()..) {
-                            self.buffer.extend_from_slice(bytes);
+                            self.remains.extend_from_slice(bytes);
                         }
                         self.field.reset();
                         Ok((id, kind, size, data_bytes.to_vec()))

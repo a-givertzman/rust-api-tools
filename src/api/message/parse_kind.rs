@@ -6,7 +6,7 @@ pub struct ParseKind {
     dbgid: DbgId,
     conf: FieldKind,
     field: Box<dyn MessageParse<(FieldId, Bytes)>>,
-    value: Option<(FieldId, MessageKind)>,
+    value: Option<MessageKind>,
     buffer: Bytes,
 }
 //
@@ -36,7 +36,7 @@ impl MessageParse<(FieldId, MessageKind, Bytes)> for ParseKind {
             Ok((id, bytes)) => {
                 let bytes = [std::mem::take(&mut self.buffer), bytes].concat();
                 match &self.value {
-                    Some((id, kind)) => Ok((id.clone(), kind.clone(), bytes)),
+                    Some(kind) => Ok((id.clone(), kind.clone(), bytes)),
                     None => {
                         match bytes.get(..self.conf.len()) {
                             Some(kind_bytes) => {
@@ -45,7 +45,7 @@ impl MessageParse<(FieldId, MessageKind, Bytes)> for ParseKind {
                                 match MessageKind::from_bytes(kind_bytes) {
                                     Ok(kind) => {
                                         log::debug!("{}.parse | kind: {:?}", self.dbgid, kind);
-                                        self.value = Some((id.clone(), kind.clone()));
+                                        self.value = Some(kind.clone());
                                         Ok((id, kind, bytes[self.conf.len()..].to_vec()))
                                     },
                                     Err(err) => {

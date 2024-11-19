@@ -22,7 +22,7 @@ mod parse_data {
     ///
     /// Testing [ParseSyn.parse]
     #[test]
-    fn parse() {
+    fn parse1() {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
         init_once();
         init_each();
@@ -85,6 +85,19 @@ mod parse_data {
                     to_bytes("234567890", 4294967295)[16..].to_vec(),
                 ],
                 FieldId(4294967295), MessageKind::String, FieldSize(9), vec![50, 51, 52, 53, 54, 55, 56, 57, 48],
+            ),
+            (
+                05, vec![
+                    vec![221, 222, 223, 224],
+                    [to_bytes("567890123455", 5), to_bytes("567890123456", 6)].concat(),
+                ],
+                FieldId(5), MessageKind::String, FieldSize(12), vec![53, 54, 55, 56, 57, 48, 49, 50, 51, 52, 53, 53],
+            ),
+            (
+                06, vec![
+                    vec![],
+                ],
+                FieldId(6), MessageKind::String, FieldSize(12), vec![53, 54, 55, 56, 57, 48, 49, 50, 51, 52, 53, 54],
             ),
         ];
         let mut message = ParseData::new(
