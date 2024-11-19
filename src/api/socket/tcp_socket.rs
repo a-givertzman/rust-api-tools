@@ -3,10 +3,15 @@ use crate::{
     api::message::{fields::{FieldId, FieldSize}, message::{Bytes, Message, MessageParse}, message_kind::MessageKind},
     debug::dbg_id::DbgId, error::str_err::StrErr,
 };
-use super::connection_status::IsConnected;
 ///
 /// 
 pub type TcpMessage = Message<(FieldId, MessageKind, FieldSize, Bytes)>;
+///
+/// Connection status
+pub enum IsConnected<T, E> {
+    Active(T),
+    Closed(E),
+}
 ///
 /// Basic Read / Write functional on the TCP Socket
 pub struct TcpSocket {
