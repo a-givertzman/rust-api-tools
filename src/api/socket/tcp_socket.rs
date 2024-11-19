@@ -196,12 +196,13 @@ impl TcpSocket {
                             }
                         }
                         Err(err) => {
-                            if let IsConnected::Closed(err) = self.parse_err(err) {
+                            let msg = format!("{}.read | Close tcp stream error: {:#?}", self.dbgid, err);
+                            if let IsConnected::Closed(_) = self.parse_err(err) {
                                 if let Err(err) = self.close() {
                                     log::warn!("{}.read | Close tcp stream error: {:?}", self.dbgid, err);
                                 }
-                                return Err(err);
                             };
+                            return Err(StrErr(msg));
                         }
                     };
                     if time.elapsed() > self.timeout {
