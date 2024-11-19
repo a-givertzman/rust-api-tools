@@ -5,7 +5,6 @@ gitRepo=$2
 # tmpDir=/tmp/api-tools-test/api-server/
 # gitRepo=https://github.com/a-givertzman/api-server.git
 #
-# exit 0
 echo "Preparing tmp dir for ApiServer in '$tmpDir'..."
 rm -rf /tmp/api-tools-test/
 mkdir -p $tmpDir
