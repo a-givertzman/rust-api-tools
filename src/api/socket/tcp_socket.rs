@@ -1,4 +1,4 @@
-use std::{io::{BufReader, BufWriter, Read, Write}, net::{SocketAddr, TcpStream, ToSocketAddrs}, sync::Arc, time::{Duration, Instant}};
+use std::{io::{BufReader, BufWriter, Read, Write}, net::{Shutdown, SocketAddr, TcpStream, ToSocketAddrs}, sync::Arc, time::{Duration, Instant}};
 use crate::{
     api::message::{fields::{FieldId, FieldSize}, message::{Bytes, Message, MessageParse}, message_kind::MessageKind},
     debug::dbg_id::DbgId, error::str_err::StrErr,
@@ -94,7 +94,21 @@ impl TcpSocket {
             },
         }
     }
-    pub fn send_message(&mut self, bytes: &[u8]) -> IsConnected<FieldId, StrErr> {
+    ///
+    /// Closes a connection
+    pub fn close(&mut self) -> Result<(), StrErr> {
+        match &self.connection {
+            Some(stream) => {
+                stream
+                    .shutdown(Shutdown::Both)
+                    .map_err(|err| StrErr(format!("{}.close | Error: {:#?}", self.dbgid, err)))
+            },
+            None => Ok(()),
+        }
+    }
+    ///
+    /// Sending a [Message] via TCP socket
+    pub fn send_message(&mut self, bytes: &[u8]) -> Result<FieldId, StrErr> {
         log::trace!("{}.send_message | bytes: {:#?}", self.dbgid, bytes);
         let time = Instant::now();
         loop {
@@ -105,12 +119,15 @@ impl TcpSocket {
                     let bytes = self.message.build(bytes, msg_id);
                     match BufWriter::new(stream.as_ref()).write_all(&bytes) {
                         Ok(_) => {
-                            return IsConnected::Active(FieldId(msg_id))
+                            return Ok(FieldId(msg_id))
                         }
                         Err(err) => {
                             let err = format!("{}.send_message | write to tcp stream error: {:?}", self.dbgid, err);
                             log::warn!("{}", err);
-                            return IsConnected::Closed(StrErr(err));
+                            if let Err(err) = self.close() {
+                                log::warn!("{}.send_message | Close tcp stream error: {:?}", self.dbgid, err);
+                            }
+                            return Err(StrErr(err));
                         }
                     }
                 }
@@ -120,16 +137,19 @@ impl TcpSocket {
                     if time.elapsed() > self.timeout {
                         let err = format!("{}.send_message | Not connected in specified timeout ({:?})", self.dbgid, self.timeout);
                         log::warn!("{}", err);
-                        return IsConnected::Closed(StrErr(err));
+                        if let Err(err) = self.close() {
+                            log::warn!("{}.send_message | Close tcp stream error: {:?}", self.dbgid, err);
+                        }
+                        return Err(StrErr(err));
                     };
                 }
             };
         }
     }
     ///
-    /// Reads all available data from the TspStream until `Message` parsed successfully
+    /// Reads a [Message] parsed from TCP socket
     /// - Returns payload bytes only (cuting header)
-    pub fn read_message(&mut self) -> IsConnected<(FieldId, Vec<u8>), StrErr> {
+    pub fn read_message(&mut self) -> Result<(FieldId, Vec<u8>), StrErr> {
         let time = Instant::now();
         loop {
             match self.connect() {
@@ -156,7 +176,7 @@ impl TcpSocket {
                                             MessageKind::I64 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
                                             MessageKind::F32 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
                                             MessageKind::F64 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                            MessageKind::String => return IsConnected::Active((id.clone(), bytes.to_owned())),
+                                            MessageKind::String => return Ok((id.clone(), bytes.to_owned())),
                                             MessageKind::Timestamp => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
                                             MessageKind::Duration => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
                                         }
@@ -167,20 +187,26 @@ impl TcpSocket {
                                 };
                                 if len < Self::BUF_LEN {
                                     if len == 0 {
-                                        return IsConnected::Closed(format!("{}.read_message | tcp stream closed", self.dbgid).into());
+                                        if let Err(err) = self.close() {
+                                            log::warn!("{}.read_message | Close tcp stream error: {:?}", self.dbgid, err);
+                                        }
+                                        return Err(format!("{}.read_message | tcp stream closed", self.dbgid).into());
                                     }
                                 }
                             }
                             Err(err) => {
                                 if let IsConnected::Closed(err) = self.parse_err(err) {
-                                    return IsConnected::Closed(err);
+                                    if let Err(err) = self.close() {
+                                        log::warn!("{}.read_message | Close tcp stream error: {:?}", self.dbgid, err);
+                                    }
+                                    return Err(err);
                                 };
                             }
                         };
                         if time.elapsed() > self.timeout {
                             let err = format!("{}.read_message | No valid message was received in specified timeout ({:?})", self.dbgid, self.timeout);
                             log::warn!("{}", err);
-                            return IsConnected::Active((FieldId(0), vec![]));
+                            return Ok((FieldId(0), vec![]));
                         }
                     }
                 }
@@ -190,43 +216,12 @@ impl TcpSocket {
                     if time.elapsed() > self.timeout {
                         let err = format!("{}.read_message | Not connected in specified timeout ({:?})", self.dbgid, self.timeout);
                         log::warn!("{}", err);
-                        return IsConnected::Active((FieldId(0), vec![]));
+                        return Err(StrErr(err));
                     }
                 }
             };
         }
     }
-    // ///
-    // /// reads all avalible data from the TspStream
-    // /// - returns Active: if read bytes non zero length without errors
-    // /// - returns Closed:
-    // ///    - if read 0 bytes
-    // ///    - if on error
-    // fn read_all(&mut self, mut stream: TcpStream, message: Message) -> Result<Vec<u8>, StrErr> {
-    //     let mut buf = [0; Self::BUF_LEN];
-    //     let mut result = vec![];
-    //     loop {
-    //         match stream.read(&mut buf) {
-    //             Ok(len) => {
-    //                 log::trace!("{}.read_all |     read len: {:?}", self.dbgid, len);
-    //                 result.append(& mut buf[..len].into());
-    //                 if len < Self::BUF_LEN {
-    //                     if len == 0 {
-    //                         return Err(format!("{}.read_all | tcp stream closed", self.dbgid).into());
-    //                     } else {
-    //                         if self.keep_alive {
-    //                             self.connection.replace((stream, message));
-    //                         }
-    //                         return Ok(result)
-    //                     }
-    //                 }
-    //             },
-    //             Err(err) => {
-    //                 _ = self.parse_err(err);
-    //             }
-    //         };
-    //     }
-    // }
     ///
     /// Returns Connection status dipending on IO Error
     fn parse_err(&self, err: std::io::Error) -> IsConnected<(), StrErr> {

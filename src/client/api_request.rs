@@ -1,7 +1,15 @@
 use serde::{ser::SerializeStruct, Serialize, Serializer};
 use std::{net::ToSocketAddrs, time::Duration};
 use crate::{
-    api::{message::{fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn}, message::MessageField, message_kind::MessageKind, parse_data::ParseData, parse_id::ParseId, parse_kind::ParseKind, parse_size::ParseSize, parse_syn::ParseSyn}, socket::{connection_status::IsConnected, tcp_socket::{TcpMessage, TcpSocket}}},
+    api::{
+        message::{
+            fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn},
+            message::MessageField, message_kind::MessageKind, parse_data::ParseData,
+            parse_id::ParseId, parse_kind::ParseKind, parse_size::ParseSize,
+            parse_syn::ParseSyn,
+        },
+        socket::tcp_socket::{TcpMessage, TcpSocket},
+    },
     client::api_query::ApiQuery, debug::dbg_id::DbgId, error::str_err::StrErr,
 };
 ///
@@ -108,13 +116,13 @@ impl ApiRequest {
             Ok(query) => {
                 log::trace!("{}.fetch | query: {:#?}", self.dbgid, query);
                 match self.socket.send_message(&query) {
-                    IsConnected::Active(_id) => {
+                    Ok(_id) => {
                         match self.socket.read_message() {
-                            IsConnected::Active((_id, bytes)) => Ok(bytes),
-                            IsConnected::Closed(err) => Err(err),
+                            Ok((_id, bytes)) => Ok(bytes),
+                            Err(err) => Err(err),
                         }
                     }
-                    IsConnected::Closed(err) => {
+                    Err(err) => {
                         let err = format!("{}.fetch | Send error: {:?}", self.dbgid, err);
                         log::warn!("{}", err);
                         Err(err.into())
