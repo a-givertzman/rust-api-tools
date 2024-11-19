@@ -207,7 +207,7 @@ impl TcpSocket {
                     if time.elapsed() > self.timeout {
                         let err = format!("{}.read | No valid message received in specified timeout {:?}", self.dbgid, self.timeout);
                         log::warn!("{}", err);
-                        return Ok((FieldId(0), vec![]));
+                        return Err(StrErr(err));
                     }
                 }
             }
@@ -216,7 +216,7 @@ impl TcpSocket {
                 log::warn!("{}", err);
                 return Err(StrErr(err));
             }
-        }
+        };
     }
     ///
     /// Returns Connection status dipending on IO Error
