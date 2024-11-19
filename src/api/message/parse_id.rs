@@ -41,7 +41,7 @@ impl MessageParse<(FieldId, Bytes)> for ParseId {
                         match bytes.get(..self.conf.len()) {
                             Some(id_bytes) => {
                                 let dbg_bytes = if id_bytes.len() > 16 {format!("{:?}...", &id_bytes[..16])} else {format!("{:?}", id_bytes)};
-                                log::debug!("{}.parse | id_bytes: {:?}", self.dbgid, dbg_bytes);
+                                log::trace!("{}.parse | id_bytes: {:?}", self.dbgid, dbg_bytes);
                                 match id_bytes.try_into() {
                                     Ok(id_bytes) => {
                                         let id= u32::from_be_bytes(id_bytes);

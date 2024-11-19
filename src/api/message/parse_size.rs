@@ -41,7 +41,7 @@ impl MessageParse<(FieldId, MessageKind, FieldSize, Bytes)> for ParseSize {
                         match bytes.get(..self.conf.len()) {
                             Some(size_bytes) => {
                                 let dbg_bytes = if size_bytes.len() > 16 {format!("{:?}...", &size_bytes[..16])} else {format!("{:?}", size_bytes)};
-                                log::debug!("{}.parse | size_bytes: {:?}", self.dbgid, dbg_bytes);
+                                log::trace!("{}.parse | size_bytes: {:?}", self.dbgid, dbg_bytes);
                                 match size_bytes.try_into() {
                                     Ok(size_bytes) => {
                                         let size= u32::from_be_bytes(size_bytes);

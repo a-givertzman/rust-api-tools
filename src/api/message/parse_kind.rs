@@ -41,10 +41,10 @@ impl MessageParse<(FieldId, MessageKind, Bytes)> for ParseKind {
                         match bytes.get(..self.conf.len()) {
                             Some(kind_bytes) => {
                                 let dbg_bytes = if kind_bytes.len() > 16 {format!("{:?}...", &kind_bytes[..16])} else {format!("{:?}", kind_bytes)};
-                                log::debug!("{}.parse | bytes: {:?}", self.dbgid, dbg_bytes);
+                                log::trace!("{}.parse | bytes: {:?}", self.dbgid, dbg_bytes);
                                 match MessageKind::from_bytes(kind_bytes) {
                                     Ok(kind) => {
-                                        log::debug!("{}.parse | kind: {:?}", self.dbgid, kind);
+                                        log::trace!("{}.parse | kind: {:?}", self.dbgid, kind);
                                         self.value = Some(kind.clone());
                                         Ok((id, kind, bytes[self.conf.len()..].to_vec()))
                                     },

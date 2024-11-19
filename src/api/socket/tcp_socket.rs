@@ -13,7 +13,7 @@ pub enum IsConnected<T, E> {
     Closed(E),
 }
 ///
-/// Basic Read / Write functional on the TCP Socket
+/// Basic Read / Write [Message]' via TCP Socket
 pub struct TcpSocket {
     dbgid: DbgId,
     address: SocketAddr,
@@ -113,7 +113,7 @@ impl TcpSocket {
     }
     ///
     /// Sending a [Message] via TCP socket
-    pub fn send_message(&mut self, bytes: &[u8]) -> Result<FieldId, StrErr> {
+    pub fn send(&mut self, bytes: &[u8]) -> Result<FieldId, StrErr> {
         log::trace!("{}.send_message | bytes: {:#?}", self.dbgid, bytes);
         let time = Instant::now();
         loop {
@@ -154,7 +154,7 @@ impl TcpSocket {
     ///
     /// Reads a [Message] parsed from TCP socket
     /// - Returns payload bytes only (cuting header)
-    pub fn read_message(&mut self) -> Result<(FieldId, Vec<u8>), StrErr> {
+    pub fn read(&mut self) -> Result<(FieldId, Vec<u8>), StrErr> {
         let time = Instant::now();
         loop {
             match self.connect() {
@@ -163,11 +163,11 @@ impl TcpSocket {
                     loop {
                         match stream.read(&mut self.buf) {
                             Ok(len) => {
-                                log::debug!("{}.read_message |     read len: {:?}", self.dbgid, len);
+                                log::trace!("{}.read_message |     read len: {:?}", self.dbgid, len);
                                 match self.message.parse(self.buf[..len].to_vec()) {
                                     Ok((id, kind, size, bytes)) => {
                                         let dbg_bytes = if bytes.len() > 16 {format!("{:?} ...", &bytes[..16])} else {format!("{:?}", bytes)};
-                                        log::debug!("{}.read_message | id: {:?},  kind: {:?},  size: {:?},  bytes: {:?}", self.dbgid, id, kind, size, dbg_bytes);
+                                        log::trace!("{}.read_message | id: {:?},  kind: {:?},  size: {:?},  bytes: {:?}", self.dbgid, id, kind, size, dbg_bytes);
                                         match kind {
                                             MessageKind::Any => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
                                             MessageKind::Empty => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
@@ -182,8 +182,8 @@ impl TcpSocket {
                                             MessageKind::F32 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
                                             MessageKind::F64 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
                                             MessageKind::String => return Ok((id.clone(), bytes.to_owned())),
-                                            MessageKind::Timestamp => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                            MessageKind::Duration => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                            MessageKind::Timestamp => log::warn!("{}.read_message | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                            MessageKind::Duration => log::warn!("{}.read_message | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
                                         }
                                     }
                                     Err(err) => {

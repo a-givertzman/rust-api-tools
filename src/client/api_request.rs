@@ -115,9 +115,9 @@ impl ApiRequest {
         match serde_json::to_vec(&self) {
             Ok(query) => {
                 log::trace!("{}.fetch | query: {:#?}", self.dbgid, query);
-                match self.socket.send_message(&query) {
+                match self.socket.send(&query) {
                     Ok(_id) => {
-                        match self.socket.read_message() {
+                        match self.socket.read() {
                             Ok((_id, bytes)) => Ok(bytes),
                             Err(err) => Err(err),
                         }

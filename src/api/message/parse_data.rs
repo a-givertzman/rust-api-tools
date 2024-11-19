@@ -37,7 +37,7 @@ impl MessageParse<(FieldId, MessageKind, FieldSize, Bytes)> for ParseData {
                 match bytes.get(..size.size()) {
                     Some(data_bytes) => {
                         let dbg_bytes = if data_bytes.len() > 16 {format!("{:?}...", &data_bytes[..16])} else {format!("{:?}", data_bytes)};
-                        log::debug!("{}.parse | data_bytes: {:?}", self.dbgid, dbg_bytes);
+                        log::trace!("{}.parse | data_bytes: {:?}", self.dbgid, dbg_bytes);
                         if let Some(bytes) = bytes.get(size.size()..) {
                             self.remains.extend_from_slice(bytes);
                         }
