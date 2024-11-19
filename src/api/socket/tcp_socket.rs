@@ -67,36 +67,43 @@ impl TcpSocket {
     ///
     /// Opens a connection to the TCP Socket and preparing the `Message`
     pub fn connect(&mut self) -> Result<Arc<TcpStream>, StrErr> {
-        match &self.connection {
-            Some(stream) => {
-                Ok(Arc::clone(stream))
-            },
-            None => {
-                match TcpStream::connect(self.address) {
-                    Ok(stream) => {
-                        log::debug!("{}.connect | connected to: \n\t{:?}", self.dbgid, stream);
-                        if let Err(err) = stream.set_read_timeout(Some(self.timeout)) {
-                            let message = format!("{}.connect | set_read_timeout error: \n\t{:?}", self.dbgid, err);
-                            log::warn!("{}", message);
+        let time = Instant::now();
+        loop {
+            match &self.connection {
+                Some(stream) => {
+                    return Ok(Arc::clone(stream))
+                },
+                None => {
+                    match TcpStream::connect(self.address) {
+                        Ok(stream) => {
+                            log::debug!("{}.connect | connected to: \n\t{:?}", self.dbgid, stream);
+                            if let Err(err) = stream.set_read_timeout(Some(self.timeout)) {
+                                let message = format!("{}.connect | set_read_timeout error: \n\t{:?}", self.dbgid, err);
+                                log::warn!("{}", message);
+                            }
+                            if let Err(err) = stream.set_write_timeout(Some(self.timeout)) {
+                                let message = format!("{}.connect | set_write_timeout error: \n\t{:?}", self.dbgid, err);
+                                log::warn!("{}", message);
+                            }
+                            let stream = Arc::new(stream);
+                            let stream_clone = Arc::clone(&stream);
+                            self.connection = Some(stream);
+                            return Ok(stream_clone)
+                        },
+                        Err(err) => {
+                            let err = format!("{}.connect | Connection error: \n\t{:?}", self.dbgid, err);
+                            if log::max_level() >= log::LevelFilter::Trace {
+                                log::warn!("{}", err);
+                            }
                         }
-                        if let Err(err) = stream.set_write_timeout(Some(self.timeout)) {
-                            let message = format!("{}.connect | set_write_timeout error: \n\t{:?}", self.dbgid, err);
-                            log::warn!("{}", message);
-                        }
-                        let stream = Arc::new(stream);
-                        let stream_clone = Arc::clone(&stream);
-                        self.connection = Some(stream);
-                        Ok(stream_clone)
-                    },
-                    Err(err) => {
-                        let err = format!("{}.connect | Connection error: \n\t{:?}", self.dbgid, err);
-                        if log::max_level() >= log::LevelFilter::Trace {
-                            log::warn!("{}", err);
-                        }
-                        Err(err.into())
                     }
-                }
-            },
+                },
+            }
+            if time.elapsed() > self.timeout {
+                let err = format!("{}.connect | Not connected in specified timeout {:?}", self.dbgid, self.timeout);
+                log::warn!("{}", err);
+                return Err(StrErr(err))
+            }
         }
     }
     ///
@@ -114,117 +121,101 @@ impl TcpSocket {
     ///
     /// Sending a [Message] via TCP socket
     pub fn send(&mut self, bytes: &[u8]) -> Result<FieldId, StrErr> {
-        log::trace!("{}.send_message | bytes: {:#?}", self.dbgid, bytes);
-        let time = Instant::now();
-        loop {
-            match self.connect() {
-                Ok(stream) => {
-                    self.msg_id = (self.msg_id % u32::MAX) + 1;
-                    let msg_id = self.msg_id;
-                    let bytes = self.message.build(bytes, msg_id);
-                    match BufWriter::new(stream.as_ref()).write_all(&bytes) {
-                        Ok(_) => {
-                            return Ok(FieldId(msg_id))
-                        }
-                        Err(err) => {
-                            let err = format!("{}.send_message | write to tcp stream error: {:?}", self.dbgid, err);
-                            log::warn!("{}", err);
-                            if let Err(err) = self.close() {
-                                log::warn!("{}.send_message | Close tcp stream error: {:?}", self.dbgid, err);
-                            }
-                            return Err(StrErr(err));
-                        }
+        log::trace!("{}.send | bytes: {:#?}", self.dbgid, bytes);
+        match self.connect() {
+            Ok(stream) => {
+                self.msg_id = (self.msg_id % u32::MAX) + 1;
+                let msg_id = self.msg_id;
+                let bytes = self.message.build(bytes, msg_id);
+                match BufWriter::new(stream.as_ref()).write_all(&bytes) {
+                    Ok(_) => {
+                        return Ok(FieldId(msg_id))
                     }
-                }
-                Err(err) => {
-                    let err = format!("{}.send_message | Connection error: {:?}", self.dbgid, err);
-                    log::warn!("{}", err);
-                    if time.elapsed() > self.timeout {
-                        let err = format!("{}.send_message | Not connected in specified timeout ({:?})", self.dbgid, self.timeout);
+                    Err(err) => {
+                        let err = format!("{}.send | write to tcp stream error: {:?}", self.dbgid, err);
                         log::warn!("{}", err);
                         if let Err(err) = self.close() {
-                            log::warn!("{}.send_message | Close tcp stream error: {:?}", self.dbgid, err);
+                            log::warn!("{}.send | Close tcp stream error: {:?}", self.dbgid, err);
                         }
                         return Err(StrErr(err));
-                    };
+                    }
                 }
-            };
-        }
+            }
+            Err(err) => {
+                let err = format!("{}.send | Connection error: {:?}", self.dbgid, err);
+                log::warn!("{}", err);
+                return Err(StrErr(err));
+            }
+        };
     }
     ///
     /// Reads a [Message] parsed from TCP socket
     /// - Returns payload bytes only (cuting header)
     pub fn read(&mut self) -> Result<(FieldId, Vec<u8>), StrErr> {
-        let time = Instant::now();
-        loop {
-            match self.connect() {
-                Ok(stream) => {
-                    let mut stream = BufReader::new(stream.as_ref());
-                    loop {
-                        match stream.read(&mut self.buf) {
-                            Ok(len) => {
-                                log::trace!("{}.read_message |     read len: {:?}", self.dbgid, len);
-                                match self.message.parse(self.buf[..len].to_vec()) {
-                                    Ok((id, kind, size, bytes)) => {
-                                        let dbg_bytes = if bytes.len() > 16 {format!("{:?} ...", &bytes[..16])} else {format!("{:?}", bytes)};
-                                        log::trace!("{}.read_message | id: {:?},  kind: {:?},  size: {:?},  bytes: {:?}", self.dbgid, id, kind, size, dbg_bytes);
-                                        match kind {
-                                            MessageKind::Any => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                            MessageKind::Empty => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                            MessageKind::Bytes => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                            MessageKind::Bool => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                            MessageKind::U16 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                            MessageKind::U32 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                            MessageKind::U64 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                            MessageKind::I16 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                            MessageKind::I32 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                            MessageKind::I64 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                            MessageKind::F32 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                            MessageKind::F64 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                            MessageKind::String => return Ok((id.clone(), bytes.to_owned())),
-                                            MessageKind::Timestamp => log::warn!("{}.read_message | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                            MessageKind::Duration => log::warn!("{}.read_message | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                        }
-                                    }
-                                    Err(err) => {
-                                        log::warn!("{}", err);
-                                    }
-                                };
-                                if len < Self::BUF_LEN {
-                                    if len == 0 {
-                                        if let Err(err) = self.close() {
-                                            log::warn!("{}.read_message | Close tcp stream error: {:?}", self.dbgid, err);
-                                        }
-                                        return Err(format!("{}.read_message | tcp stream closed", self.dbgid).into());
+        match self.connect() {
+            Ok(stream) => {
+                let time = Instant::now();
+                let mut stream = BufReader::new(stream.as_ref());
+                loop {
+                    match stream.read(&mut self.buf) {
+                        Ok(len) => {
+                            log::trace!("{}.read |     read len: {:?}", self.dbgid, len);
+                            match self.message.parse(self.buf[..len].to_vec()) {
+                                Ok((id, kind, size, bytes)) => {
+                                    let dbg_bytes = if bytes.len() > 16 {format!("{:?} ...", &bytes[..16])} else {format!("{:?}", bytes)};
+                                    log::trace!("{}.read | id: {:?},  kind: {:?},  size: {:?},  bytes: {:?}", self.dbgid, id, kind, size, dbg_bytes);
+                                    match kind {
+                                        MessageKind::Any => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                        MessageKind::Empty => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                        MessageKind::Bytes => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                        MessageKind::Bool => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                        MessageKind::U16 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                        MessageKind::U32 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                        MessageKind::U64 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                        MessageKind::I16 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                        MessageKind::I32 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                        MessageKind::I64 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                        MessageKind::F32 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                        MessageKind::F64 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                        MessageKind::String => return Ok((id.clone(), bytes.to_owned())),
+                                        MessageKind::Timestamp => log::warn!("{}.read | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                        MessageKind::Duration => log::warn!("{}.read | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
                                     }
                                 }
-                            }
-                            Err(err) => {
-                                if let IsConnected::Closed(err) = self.parse_err(err) {
+                                Err(err) => {
+                                    log::warn!("{}", err);
+                                }
+                            };
+                            if len < Self::BUF_LEN {
+                                if len == 0 {
                                     if let Err(err) = self.close() {
-                                        log::warn!("{}.read_message | Close tcp stream error: {:?}", self.dbgid, err);
+                                        log::warn!("{}.read | Close tcp stream error: {:?}", self.dbgid, err);
                                     }
-                                    return Err(err);
-                                };
+                                    return Err(format!("{}.read | tcp stream closed", self.dbgid).into());
+                                }
                             }
-                        };
-                        if time.elapsed() > self.timeout {
-                            let err = format!("{}.read_message | No valid message was received in specified timeout ({:?})", self.dbgid, self.timeout);
-                            log::warn!("{}", err);
-                            return Ok((FieldId(0), vec![]));
                         }
-                    }
-                }
-                Err(err) => {
-                    let err = format!("{}.read_message | Connection error: {:?}", self.dbgid, err);
-                    log::warn!("{}", err);
+                        Err(err) => {
+                            if let IsConnected::Closed(err) = self.parse_err(err) {
+                                if let Err(err) = self.close() {
+                                    log::warn!("{}.read | Close tcp stream error: {:?}", self.dbgid, err);
+                                }
+                                return Err(err);
+                            };
+                        }
+                    };
                     if time.elapsed() > self.timeout {
-                        let err = format!("{}.read_message | Not connected in specified timeout ({:?})", self.dbgid, self.timeout);
+                        let err = format!("{}.read | No valid message received in specified timeout {:?}", self.dbgid, self.timeout);
                         log::warn!("{}", err);
-                        return Err(StrErr(err));
+                        return Ok((FieldId(0), vec![]));
                     }
                 }
-            };
+            }
+            Err(err) => {
+                let err = format!("{}.read | Connection error: {:?}", self.dbgid, err);
+                log::warn!("{}", err);
+                return Err(StrErr(err));
+            }
         }
     }
     ///
