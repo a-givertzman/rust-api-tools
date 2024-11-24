@@ -1,10 +1,10 @@
-use crate::{api::message::message_kind::MessageKind, debug::dbg_id::DbgId, error::str_err::StrErr};
+use crate::{api::message::message_kind::_MessageKind, debug::dbg_id::DbgId, error::str_err::StrErr};
 use super::{fields::{FieldId, FieldSize}, message::{Bytes, MessageParse}};
 ///
 /// Extracting `Data` field from the input bytes
 pub struct ParseData {
     dbgid: DbgId,
-    field: Box<dyn MessageParse<(FieldId, MessageKind, FieldSize, Bytes)>>,
+    field: Box<dyn MessageParse<(FieldId, _MessageKind, FieldSize, Bytes)>>,
     buffer: Bytes,
     remains: Bytes,
 }
@@ -13,7 +13,7 @@ pub struct ParseData {
 impl ParseData {
     ///
     /// Returns [ParseData] new instance
-    pub fn new(dbgid: &DbgId, field: impl MessageParse<(FieldId, MessageKind, FieldSize, Bytes)> + 'static) -> Self {
+    pub fn new(dbgid: &DbgId, field: impl MessageParse<(FieldId, _MessageKind, FieldSize, Bytes)> + 'static) -> Self {
         Self {
             dbgid: DbgId(format!("{}/ParseData", dbgid)),
             field: Box::new(field),
@@ -24,12 +24,12 @@ impl ParseData {
 }
 //
 //
-impl MessageParse<(FieldId, MessageKind, FieldSize, Bytes)> for ParseData {
+impl MessageParse<(FieldId, _MessageKind, FieldSize, Bytes)> for ParseData {
     ///
     /// Extracting `Data` field from the input bytes
     /// - returns `Id`, `Kind`, `Size` & `Bytes` following by the `Size`
     /// - call this method multiple times, until the end of message
-    fn parse(&mut self, bytes: Bytes) -> Result<(FieldId, MessageKind, FieldSize, Bytes), StrErr> {
+    fn parse(&mut self, bytes: Bytes) -> Result<(FieldId, _MessageKind, FieldSize, Bytes), StrErr> {
         let bytes = [std::mem::take(&mut self.remains), bytes].concat();
         match self.field.parse(bytes) {
             Ok((id, kind, size, bytes)) => {

@@ -3,10 +3,7 @@ use std::{net::ToSocketAddrs, time::Duration};
 use crate::{
     api::{
         message::{
-            fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn},
-            message::MessageField, message_kind::MessageKind, parse_data::ParseData,
-            parse_id::ParseId, parse_kind::ParseKind, parse_size::ParseSize,
-            parse_syn::ParseSyn,
+            fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn}, message::MessageField, message_kind::_MessageKind, msg_kind, parse_data::ParseData, parse_id::ParseId, parse_kind::ParseKind, parse_size::ParseSize, parse_syn::ParseSyn
         },
         socket::tcp_socket::{TcpMessage, TcpSocket},
     },
@@ -60,7 +57,7 @@ impl ApiRequest {
             vec![
                 MessageField::Syn(FieldSyn::default()),
                 MessageField::Id(FieldId(4)),
-                MessageField::Kind(FieldKind(MessageKind::String)),
+                MessageField::Kind(FieldKind(_MessageKind::Bytes)),
                 MessageField::Size(FieldSize(4)),
                 MessageField::Data(FieldData(vec![]))
             ],
@@ -71,7 +68,7 @@ impl ApiRequest {
                     FieldSize(4),
                     ParseKind::new(
                         &dbgid,
-                        FieldKind(MessageKind::Any),
+                        FieldKind(_MessageKind::Bytes),
                         ParseId::new(
                             &dbgid,
                             FieldId(4),
@@ -118,7 +115,14 @@ impl ApiRequest {
                 match self.socket.send(&query) {
                     Ok(_id) => {
                         match self.socket.read() {
-                            Ok((_id, bytes)) => Ok(bytes),
+                            Ok((_id, msg)) => match msg {
+                                msg_kind::MsgKind::Bytes(bytes) =>  Ok(bytes),
+                                _ => {
+                                    let err = format!("{}.fetch | Message kind error, expected Bytes, but found: {:?}", self.dbgid, msg);
+                                    log::warn!("{}", err);
+                                    Err(err.into())
+                                }
+                            }
                             Err(err) => Err(err),
                         }
                     }

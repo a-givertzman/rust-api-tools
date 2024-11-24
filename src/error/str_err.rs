@@ -4,7 +4,6 @@
 //! }
 ///
 /// Error container
-#[derive(Debug)]
 pub struct StrErr(pub String);
 // Error doesn't require you to implement any methods, but
 // your type must also implement Debug and Display.
@@ -13,8 +12,14 @@ impl std::error::Error for StrErr {}
 //
 impl std::fmt::Display for StrErr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // Delegate to the Display impl for `&str`:
-        self.0.fmt(f)
+        write!(f, "{}", self.0)
+    }
+}
+//
+//
+impl std::fmt::Debug for StrErr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 impl From<String> for StrErr {

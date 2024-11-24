@@ -35,9 +35,10 @@
 use crate::error::str_err::StrErr;
 use super::from_bytes::FromBytes;
 ///
-/// Kind of Message
+/// Internal Kind of Message
+/// - Used for build / parsing
 #[derive(Debug, Clone, PartialEq)]
-pub enum MessageKind {
+pub enum _MessageKind {
     Any = Self::ANY as isize,
     Empty = Self::EMPTY as isize,
     Bytes = Self::BYTES as isize,
@@ -56,7 +57,7 @@ pub enum MessageKind {
 }
 //
 //
-impl MessageKind {
+impl _MessageKind {
     const ANY: u8 = 00;
     const EMPTY: u8 = 01;
     const BYTES: u8 = 02;
@@ -76,44 +77,44 @@ impl MessageKind {
     /// Returns bytes of the `MessageKund` variant    
     pub fn to_bytes(&self) -> &[u8] {
         match self {
-            MessageKind::Any => &[Self::ANY],
-            MessageKind::Empty => &[Self::EMPTY],
-            MessageKind::Bytes => &[Self::BYTES],
-            MessageKind::Bool => &[Self::BOOL],
-            MessageKind::U16 => &[Self::UINT16],
-            MessageKind::U32 => &[Self::UINT32],
-            MessageKind::U64 => &[Self::UINT64],
-            MessageKind::I16 => &[Self::INT16],
-            MessageKind::I32 => &[Self::INT32],
-            MessageKind::I64 => &[Self::INT64],
-            MessageKind::F32 => &[Self::FLOAT32],
-            MessageKind::F64 => &[Self::FLOAT64],
-            MessageKind::String => &[Self::STRING],
-            MessageKind::Timestamp => &[Self::TIMESTAMP],
-            MessageKind::Duration => &[Self::DURATION],
+            _MessageKind::Any => &[Self::ANY],
+            _MessageKind::Empty => &[Self::EMPTY],
+            _MessageKind::Bytes => &[Self::BYTES],
+            _MessageKind::Bool => &[Self::BOOL],
+            _MessageKind::U16 => &[Self::UINT16],
+            _MessageKind::U32 => &[Self::UINT32],
+            _MessageKind::U64 => &[Self::UINT64],
+            _MessageKind::I16 => &[Self::INT16],
+            _MessageKind::I32 => &[Self::INT32],
+            _MessageKind::I64 => &[Self::INT64],
+            _MessageKind::F32 => &[Self::FLOAT32],
+            _MessageKind::F64 => &[Self::FLOAT64],
+            _MessageKind::String => &[Self::STRING],
+            _MessageKind::Timestamp => &[Self::TIMESTAMP],
+            _MessageKind::Duration => &[Self::DURATION],
         }
     }
 }
-impl FromBytes for MessageKind {
+impl FromBytes for _MessageKind {
     ///
     /// Returns [MessageKind] converted from `bytes`
     fn from_bytes(bytes: &[u8]) -> Result<Self, StrErr> {
         match bytes {
-            [Self::ANY] => Ok(MessageKind::Any),
-            [Self::EMPTY] => Ok(MessageKind::Empty),
-            [Self::BYTES] => Ok(MessageKind::Bytes),
-            [Self::BOOL] => Ok(MessageKind::Bool),
-            [Self::UINT16] => Ok(MessageKind::U16),
-            [Self::UINT32] => Ok(MessageKind::U32),
-            [Self::UINT64] => Ok(MessageKind::U64),
-            [Self::INT16] => Ok(MessageKind::I16),
-            [Self::INT32] => Ok(MessageKind::I32),
-            [Self::INT64] => Ok(MessageKind::I64),
-            [Self::FLOAT32] => Ok(MessageKind::F32),
-            [Self::FLOAT64] => Ok(MessageKind::F64),
-            [Self::STRING] => Ok(MessageKind::String),
-            [Self::TIMESTAMP] => Ok(MessageKind::Timestamp),
-            [Self::DURATION] => Ok(MessageKind::Duration),
+            [Self::ANY] => Ok(_MessageKind::Any),
+            [Self::EMPTY] => Ok(_MessageKind::Empty),
+            [Self::BYTES] => Ok(_MessageKind::Bytes),
+            [Self::BOOL] => Ok(_MessageKind::Bool),
+            [Self::UINT16] => Ok(_MessageKind::U16),
+            [Self::UINT32] => Ok(_MessageKind::U32),
+            [Self::UINT64] => Ok(_MessageKind::U64),
+            [Self::INT16] => Ok(_MessageKind::I16),
+            [Self::INT32] => Ok(_MessageKind::I32),
+            [Self::INT64] => Ok(_MessageKind::I64),
+            [Self::FLOAT32] => Ok(_MessageKind::F32),
+            [Self::FLOAT64] => Ok(_MessageKind::F64),
+            [Self::STRING] => Ok(_MessageKind::String),
+            [Self::TIMESTAMP] => Ok(_MessageKind::Timestamp),
+            [Self::DURATION] => Ok(_MessageKind::Duration),
             [..] => Err(StrErr(format!("MessageKind.from_bytes | Wrong or Empty input: {:?}", &bytes[..16]))),
         }
     }

@@ -1,6 +1,7 @@
 pub mod fields;
-pub mod message_kind;
+pub(crate) mod message_kind;
 pub mod message;
+pub mod msg_kind;
 pub mod from_bytes;
 pub mod parse_data;
 pub mod parse_id;

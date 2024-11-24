@@ -1,4 +1,4 @@
-use super::message_kind::MessageKind;
+use super::message_kind::_MessageKind;
 ///
 /// Start field
 #[derive(Debug, Clone, PartialEq)]
@@ -34,7 +34,7 @@ impl FieldId {
 ///
 /// Kind field
 #[derive(Clone, PartialEq)]
-pub struct FieldKind(pub MessageKind);
+pub struct FieldKind(pub _MessageKind);
 impl FieldKind {
     ///
     /// Return the memory representation of this `value` as a byte array in big-endian (network) byte order.

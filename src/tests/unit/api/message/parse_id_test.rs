@@ -4,7 +4,7 @@ mod parse_id {
     use std::{sync::Once, time::Duration};
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::{api::message::{fields::{FieldId, FieldSyn}, message::MessageParse, message_kind::MessageKind, parse_id::ParseId, parse_syn::ParseSyn}, debug::dbg_id::DbgId};
+    use crate::{api::message::{fields::{FieldId, FieldSyn}, message::MessageParse, message_kind::_MessageKind, parse_id::ParseId, parse_syn::ParseSyn}, debug::dbg_id::DbgId};
     ///
     ///
     static INIT: Once = Once::new();
@@ -37,7 +37,7 @@ mod parse_id {
             [
                 FieldSyn::default().0.to_be_bytes().as_slice(),
                 FieldId(id).to_be_bytes().as_slice(),
-                MessageKind::String.to_bytes(),
+                _MessageKind::String.to_bytes(),
                 size.to_be_bytes().as_slice(),
                 data,
             ].concat()

@@ -1,4 +1,4 @@
-use crate::{api::message::{from_bytes::FromBytes, message_kind::MessageKind}, debug::dbg_id::DbgId, error::str_err::StrErr};
+use crate::{api::message::{from_bytes::FromBytes, message_kind::_MessageKind}, debug::dbg_id::DbgId, error::str_err::StrErr};
 use super::{fields::{FieldId, FieldKind}, message::{Bytes, MessageParse}};
 ///
 /// Extracting `Kind` field from the input bytes
@@ -6,7 +6,7 @@ pub struct ParseKind {
     dbgid: DbgId,
     conf: FieldKind,
     field: Box<dyn MessageParse<(FieldId, Bytes)>>,
-    value: Option<MessageKind>,
+    value: Option<_MessageKind>,
     buffer: Bytes,
 }
 //
@@ -26,12 +26,12 @@ impl ParseKind {
 }
 //
 //
-impl MessageParse<(FieldId, MessageKind, Bytes)> for ParseKind {
+impl MessageParse<(FieldId, _MessageKind, Bytes)> for ParseKind {
     ///
     /// Extracting `Kind` field from the input bytes
     /// - returns `Id`, `Kind` & `Bytes` following by the `Kind`
     /// - call this method multiple times, until the end of message
-    fn parse(&mut self, bytes: Bytes) -> Result<(FieldId, MessageKind, Bytes), StrErr> {
+    fn parse(&mut self, bytes: Bytes) -> Result<(FieldId, _MessageKind, Bytes), StrErr> {
         match self.field.parse(bytes) {
             Ok((id, bytes)) => {
                 let bytes = [std::mem::take(&mut self.buffer), bytes].concat();
@@ -42,7 +42,7 @@ impl MessageParse<(FieldId, MessageKind, Bytes)> for ParseKind {
                             Some(kind_bytes) => {
                                 let dbg_bytes = if kind_bytes.len() > 16 {format!("{:?}...", &kind_bytes[..16])} else {format!("{:?}", kind_bytes)};
                                 log::trace!("{}.parse | bytes: {:?}", self.dbgid, dbg_bytes);
-                                match MessageKind::from_bytes(kind_bytes) {
+                                match _MessageKind::from_bytes(kind_bytes) {
                                     Ok(kind) => {
                                         log::trace!("{}.parse | kind: {:?}", self.dbgid, kind);
                                         self.value = Some(kind.clone());

@@ -1,11 +1,11 @@
-use crate::{api::message::message_kind::MessageKind, debug::dbg_id::DbgId, error::str_err::StrErr};
+use crate::{api::message::message_kind::_MessageKind, debug::dbg_id::DbgId, error::str_err::StrErr};
 use super::{fields::{FieldId, FieldSize}, message::{Bytes, MessageParse}};
 ///
 /// Extracting `Size` field from the input bytes
 pub struct ParseSize {
     dbgid: DbgId,
     conf: FieldSize,
-    field: Box<dyn MessageParse<(FieldId, MessageKind, Bytes)>>,
+    field: Box<dyn MessageParse<(FieldId, _MessageKind, Bytes)>>,
     value: Option<FieldSize>,
     buffer: Bytes,
 }
@@ -14,7 +14,7 @@ pub struct ParseSize {
 impl ParseSize {
     ///
     /// Returns [ParseSize] new instance
-    pub fn new(dbgid: &DbgId, conf: FieldSize, field: impl MessageParse<(FieldId, MessageKind, Bytes)> + 'static) -> Self {
+    pub fn new(dbgid: &DbgId, conf: FieldSize, field: impl MessageParse<(FieldId, _MessageKind, Bytes)> + 'static) -> Self {
         Self {
             dbgid: DbgId(format!("{}/ParseSize", dbgid)),
             conf,
@@ -26,12 +26,12 @@ impl ParseSize {
 }
 //
 //
-impl MessageParse<(FieldId, MessageKind, FieldSize, Bytes)> for ParseSize {
+impl MessageParse<(FieldId, _MessageKind, FieldSize, Bytes)> for ParseSize {
     ///
     /// Extracting `Size` field from the input bytes
     /// - returns `Id`, `Kind`, `Size` & `Bytes` following by the `Size`
     /// - call this method multiple times, until the end of message
-    fn parse(&mut self, bytes: Bytes) -> Result<(FieldId, MessageKind, FieldSize, Bytes), StrErr> {
+    fn parse(&mut self, bytes: Bytes) -> Result<(FieldId, _MessageKind, FieldSize, Bytes), StrErr> {
         match self.field.parse(bytes) {
             Ok((id, kind, bytes)) => {
                 let bytes = [std::mem::take(&mut self.buffer), bytes].concat();
