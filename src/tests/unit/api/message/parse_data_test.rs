@@ -4,7 +4,7 @@ mod parse_data {
     use std::{sync::Once, time::Duration};
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::{api::message::{fields::{FieldId, FieldKind, FieldSize, FieldSyn}, message::MessageParse, message_kind::_MessageKind, parse_data::ParseData, parse_id::ParseId, parse_kind::ParseKind, parse_size::ParseSize, parse_syn::ParseSyn}, debug::dbg_id::DbgId};
+    use crate::{api::message::{fields::{FieldId, FieldKind, FieldSize, FieldSyn}, message::MessageParse, message_kind::MessageKind, parse_data::ParseData, parse_id::ParseId, parse_kind::ParseKind, parse_size::ParseSize, parse_syn::ParseSyn}, debug::dbg_id::DbgId};
     ///
     ///
     static INIT: Once = Once::new();
@@ -37,7 +37,7 @@ mod parse_data {
             [
                 FieldSyn::default().0.to_be_bytes().as_slice(),
                 FieldId(id).to_be_bytes().as_slice(),
-                _MessageKind::String.to_bytes(),
+                MessageKind::String.to_bytes(),
                 size.to_be_bytes().as_slice(),
                 data,
             ].concat()
@@ -47,7 +47,7 @@ mod parse_data {
                 00, vec![
                     to_bytes("123", 4294967291),
                 ],
-                FieldId(4294967291), _MessageKind::String, FieldSize(3), vec![49, 50, 51],
+                FieldId(4294967291), MessageKind::String, FieldSize(3), vec![49, 50, 51],
             ),
             (
                 01, vec![
@@ -55,7 +55,7 @@ mod parse_data {
                     to_bytes("23456", 4294967292)[..3].to_vec(),
                     to_bytes("23456", 4294967292)[3..].to_vec(),
                 ],
-                FieldId(4294967292), _MessageKind::String, FieldSize(5), vec![50, 51, 52, 53, 54],
+                FieldId(4294967292), MessageKind::String, FieldSize(5), vec![50, 51, 52, 53, 54],
             ),
             (
                 02, vec![
@@ -63,7 +63,7 @@ mod parse_data {
                     [&[003, 004], &to_bytes("23456", 4294967293)[..4]].concat(),
                     to_bytes("23456", 4294967293)[4..].to_vec(),
                 ],
-                FieldId(4294967293), _MessageKind::String, FieldSize(5), vec![50, 51, 52, 53, 54],
+                FieldId(4294967293), MessageKind::String, FieldSize(5), vec![50, 51, 52, 53, 54],
             ),
             (
                 03, vec![
@@ -73,7 +73,7 @@ mod parse_data {
                     to_bytes("2345678", 4294967294)[4..6].to_vec(),
                     to_bytes("2345678", 4294967294)[6..].to_vec(),
                 ],
-                FieldId(4294967294), _MessageKind::String, FieldSize(7), vec![50, 51, 52, 53, 54, 55, 56],
+                FieldId(4294967294), MessageKind::String, FieldSize(7), vec![50, 51, 52, 53, 54, 55, 56],
             ),
             (
                 04, vec![
@@ -84,20 +84,20 @@ mod parse_data {
                     to_bytes("234567890", 4294967295)[7..16].to_vec(),
                     to_bytes("234567890", 4294967295)[16..].to_vec(),
                 ],
-                FieldId(4294967295), _MessageKind::String, FieldSize(9), vec![50, 51, 52, 53, 54, 55, 56, 57, 48],
+                FieldId(4294967295), MessageKind::String, FieldSize(9), vec![50, 51, 52, 53, 54, 55, 56, 57, 48],
             ),
             (
                 05, vec![
                     vec![221, 222, 223, 224],
                     [to_bytes("567890123455", 5), to_bytes("567890123456", 6)].concat(),
                 ],
-                FieldId(5), _MessageKind::String, FieldSize(12), vec![53, 54, 55, 56, 57, 48, 49, 50, 51, 52, 53, 53],
+                FieldId(5), MessageKind::String, FieldSize(12), vec![53, 54, 55, 56, 57, 48, 49, 50, 51, 52, 53, 53],
             ),
             (
                 06, vec![
                     vec![],
                 ],
-                FieldId(6), _MessageKind::String, FieldSize(12), vec![53, 54, 55, 56, 57, 48, 49, 50, 51, 52, 53, 54],
+                FieldId(6), MessageKind::String, FieldSize(12), vec![53, 54, 55, 56, 57, 48, 49, 50, 51, 52, 53, 54],
             ),
         ];
         let mut message = ParseData::new(
@@ -107,7 +107,7 @@ mod parse_data {
                 FieldSize(4),
                 ParseKind::new(
                     &dbgid,
-                    FieldKind(_MessageKind::Any),
+                    FieldKind(MessageKind::Any),
                     ParseId::new(
                         &dbgid,
                         FieldId(4),
@@ -161,12 +161,12 @@ mod parse_data {
             [
                 FieldSyn::default().0.to_be_bytes().as_slice(),
                 FieldId(id).to_be_bytes().as_slice(),
-                _MessageKind::String.to_bytes(),
+                MessageKind::String.to_bytes(),
                 size.to_be_bytes().as_slice(),
                 data,
             ].concat()
         }
-        let field_kind = _MessageKind::String;
+        let field_kind = MessageKind::String;
         let test_data = [
             (
                 00, vec![
@@ -259,7 +259,7 @@ mod parse_data {
                 FieldSize(4),
                 ParseKind::new(
                     &dbgid,
-                    FieldKind(_MessageKind::Any),
+                    FieldKind(MessageKind::Any),
                     ParseId::new(
                         &dbgid,
                         FieldId(4),

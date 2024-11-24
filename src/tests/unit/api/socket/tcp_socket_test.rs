@@ -8,7 +8,7 @@ mod tcp_socket {
         api::{
             message::{
                 fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn},
-                message::MessageField, message_kind::_MessageKind, msg_kind::MsgKind,
+                message::MessageField, message_kind::MessageKind, msg_kind::MsgKind,
                 parse_data::ParseData, parse_id::ParseId, parse_kind::ParseKind, parse_size::ParseSize, parse_syn::ParseSyn,
             },
             socket::tcp_socket::{TcpMessage, TcpSocket},
@@ -77,7 +77,7 @@ mod tcp_socket {
                 vec![
                     MessageField::Syn(FieldSyn::default()),
                     MessageField::Id(FieldId(4)),
-                    MessageField::Kind(FieldKind(_MessageKind::Bytes)),
+                    MessageField::Kind(FieldKind(MessageKind::Bytes)),
                     MessageField::Size(FieldSize(4)),
                     MessageField::Data(FieldData(vec![]))
                 ],
@@ -88,7 +88,7 @@ mod tcp_socket {
                         FieldSize(4),
                         ParseKind::new(
                             &dbgid,
-                            FieldKind(_MessageKind::Bytes),
+                            FieldKind(MessageKind::Bytes),
                             ParseId::new(
                                 &dbgid,
                                 FieldId(4),

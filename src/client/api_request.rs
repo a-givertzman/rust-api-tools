@@ -3,7 +3,7 @@ use std::{net::ToSocketAddrs, time::Duration};
 use crate::{
     api::{
         message::{
-            fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn}, message::MessageField, message_kind::_MessageKind, msg_kind, parse_data::ParseData, parse_id::ParseId, parse_kind::ParseKind, parse_size::ParseSize, parse_syn::ParseSyn
+            fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn}, message::MessageField, message_kind::MessageKind, msg_kind, parse_data::ParseData, parse_id::ParseId, parse_kind::ParseKind, parse_size::ParseSize, parse_syn::ParseSyn
         },
         socket::tcp_socket::{TcpMessage, TcpSocket},
     },
@@ -57,7 +57,7 @@ impl ApiRequest {
             vec![
                 MessageField::Syn(FieldSyn::default()),
                 MessageField::Id(FieldId(4)),
-                MessageField::Kind(FieldKind(_MessageKind::Bytes)),
+                MessageField::Kind(FieldKind(MessageKind::Bytes)),
                 MessageField::Size(FieldSize(4)),
                 MessageField::Data(FieldData(vec![]))
             ],
@@ -68,7 +68,7 @@ impl ApiRequest {
                     FieldSize(4),
                     ParseKind::new(
                         &dbgid,
-                        FieldKind(_MessageKind::Bytes),
+                        FieldKind(MessageKind::Bytes),
                         ParseId::new(
                             &dbgid,
                             FieldId(4),

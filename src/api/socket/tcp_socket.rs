@@ -1,11 +1,11 @@
 use std::{io::{BufReader, BufWriter, Read, Write}, net::{Shutdown, SocketAddr, TcpStream, ToSocketAddrs}, sync::Arc, time::{Duration, Instant}};
 use crate::{
-    api::message::{fields::{FieldId, FieldSize}, message::{Bytes, Message, MessageParse}, message_kind::_MessageKind, msg_kind::MsgKind},
+    api::message::{fields::{FieldId, FieldSize}, message::{Bytes, Message, MessageParse}, message_kind::MessageKind, msg_kind::MsgKind},
     debug::dbg_id::DbgId, error::str_err::StrErr,
 };
 ///
 /// 
-pub type TcpMessage = Message<(FieldId, _MessageKind, FieldSize, Bytes)>;
+pub type TcpMessage = Message<(FieldId, MessageKind, FieldSize, Bytes)>;
 ///
 /// Connection status
 pub enum IsConnected<T, E> {
@@ -169,24 +169,24 @@ impl TcpSocket {
                                     let dbg_bytes = if bytes.len() > 16 {format!("{:?} ...", &bytes[..16])} else {format!("{:?}", bytes)};
                                     log::trace!("{}.read | id: {:?},  kind: {:?},  size: {:?},  bytes: {:?}", self.dbgid, id, kind, size, dbg_bytes);
                                     match kind {
-                                        _MessageKind::Any => return Ok((id.clone(), MsgKind::Bytes(bytes.to_owned()))),
-                                        _MessageKind::Empty => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                        _MessageKind::Bytes => return Ok((id.clone(), MsgKind::Bytes(bytes.to_owned()))),
-                                        _MessageKind::Bool => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                        _MessageKind::U16 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                        _MessageKind::U32 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                        _MessageKind::U64 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                        _MessageKind::I16 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                        _MessageKind::I32 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                        _MessageKind::I64 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                        _MessageKind::F32 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                        _MessageKind::F64 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                        _MessageKind::String => match String::from_utf8(bytes) {
+                                        MessageKind::Any => return Ok((id.clone(), MsgKind::Bytes(bytes.to_owned()))),
+                                        MessageKind::Empty => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                        MessageKind::Bytes => return Ok((id.clone(), MsgKind::Bytes(bytes.to_owned()))),
+                                        MessageKind::Bool => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                        MessageKind::U16 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                        MessageKind::U32 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                        MessageKind::U64 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                        MessageKind::I16 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                        MessageKind::I32 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                        MessageKind::I64 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                        MessageKind::F32 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                        MessageKind::F64 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                        MessageKind::String => match String::from_utf8(bytes) {
                                             Ok(value) => return Ok((id.clone(), MsgKind::String(value))),
                                             Err(err) => return Err(format!("{}.read | Message::string parse error: {}", self.dbgid, err).into()),
                                         },
-                                        _MessageKind::Timestamp => log::warn!("{}.read | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
-                                        _MessageKind::Duration => log::warn!("{}.read | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                        MessageKind::Timestamp => log::warn!("{}.read | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
+                                        MessageKind::Duration => log::warn!("{}.read | Message of kind '{:?}' - is not implemented yet", self.dbgid, kind),
                                     }
                                 }
                                 Err(err) => {
