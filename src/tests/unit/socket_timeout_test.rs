@@ -1,7 +1,7 @@
 #[cfg(test)]
 
-mod tests {
-    use std::{io::{BufReader, Read}, net::{TcpListener, TcpStream}, sync::Once, time::{Duration, Instant}};
+mod socket_timeout {
+    use std::{io::{BufReader, BufWriter, Read, Write}, net::{Shutdown, TcpListener, TcpStream}, sync::{Arc, Once}, time::{Duration, Instant}};
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
     use crate::{debug::dbg_id::DbgId, error::str_err::StrErr};
@@ -31,10 +31,10 @@ mod tests {
     ///  - ...
     fn init_each() -> () {}
     ///
-    /// Testing such functionality / behavior
+    /// Testing Socket read timeout
     #[test]
-    fn test_task_cycle() {
-        DebugSession::init(LogLevel::Info, Backtrace::Short);
+    fn read_timeout() {
+        DebugSession::init(LogLevel::Debug, Backtrace::Short);
         init_once();
         init_each();
         let dbgid = DbgId("test".to_owned());
@@ -47,25 +47,27 @@ mod tests {
         let mut step: usize = 0;
         let result = match TcpListener::bind(addr) {
             Ok(_) => {
-                let stream = TcpStream::connect(addr).unwrap();
-                if let Err(err) = stream.set_read_timeout(Some(timeout)) {
+                let socket = TcpStream::connect(addr).unwrap();
+                if let Err(err) = socket.set_read_timeout(Some(timeout)) {
                     let message = format!("{}.connect | set_read_timeout error: \n\t{:?}", dbgid, err);
                     log::warn!("{}", message);
                 }
-                if let Err(err) = stream.set_write_timeout(Some(timeout)) {
+                if let Err(err) = socket.set_write_timeout(Some(timeout)) {
                     let message = format!("{}.connect | set_write_timeout error: \n\t{:?}", dbgid, err);
                     log::warn!("{}", message);
                 }
-                let mut stream = BufReader::new(stream);
+                let socket = Arc::new(socket);
+                let mut stream = BufReader::new(socket.as_ref());
                 let mut buf = vec![0; 1024];
                 let result = stream.read(&mut buf);
                 let elapsed = time.elapsed();
-                log::debug!("{} | result: {:?}", dbgid, result);
+                log::debug!("{} | Read result: {:?}", dbgid, result);
                 assert!(result.is_err(), "step {} \nresult: {:?}\ntarget: {:?}", step.inc(), result.is_err(), true);
                 let target = timeout + Duration::from_millis(500);
                 assert!(elapsed < target, "step {} \nresult: {:?}\ntarget: {:?}", step.inc(), elapsed, target);
                 let target = timeout - Duration::from_millis(1);
                 assert!(elapsed > target, "step {} \nresult: {:?}\ntarget: {:?}", step.inc(), elapsed, target);
+                socket.shutdown(Shutdown::Both).unwrap();
                 Ok(())
             }
             Err(err) => {

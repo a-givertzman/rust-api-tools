@@ -2,4 +2,4 @@ mod error;
 mod server;
 mod client;
 mod api;
-mod tcp_read_timeout_test;
+mod socket_timeout_test;
