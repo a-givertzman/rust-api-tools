@@ -1,7 +1,7 @@
 #[cfg(test)]
 
 mod socket_timeout {
-    use std::{io::{BufReader, BufWriter, Read, Write}, net::{Shutdown, TcpListener, TcpStream}, sync::{Arc, Once}, time::{Duration, Instant}};
+    use std::{io::{BufReader, Read}, net::{Shutdown, TcpListener, TcpStream}, sync::{Arc, Once}, time::{Duration, Instant}};
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
     use crate::{debug::dbg_id::DbgId, error::str_err::StrErr};
