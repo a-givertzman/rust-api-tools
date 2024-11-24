@@ -7,9 +7,11 @@ mod tcp_socket {
     use crate::{
         api::{
             message::{
-                fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn}, message::MessageField, message_kind::_MessageKind, msg_kind::MsgKind, parse_data::ParseData, parse_id::ParseId, parse_kind::ParseKind, parse_size::ParseSize, parse_syn::ParseSyn
+                fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn},
+                message::MessageField, message_kind::_MessageKind, msg_kind::MsgKind,
+                parse_data::ParseData, parse_id::ParseId, parse_kind::ParseKind, parse_size::ParseSize, parse_syn::ParseSyn,
             },
-            reply::api_reply::ApiReply, socket::tcp_socket::{TcpMessage, TcpSocket},
+            socket::tcp_socket::{TcpMessage, TcpSocket},
         },
         debug::dbg_id::DbgId, error::str_err::StrErr,
     };
@@ -31,19 +33,6 @@ mod tcp_socket {
     /// returns:
     ///  - ...
     fn init_each() -> () {}
-    ///
-    /// Builds a valid socket message
-    fn to_bytes(data: &str, id: u32) -> Vec<u8> {
-        let data = data.as_bytes();
-        let size = data.len() as u32;
-        [
-            FieldSyn::default().0.to_be_bytes().as_slice(),
-            FieldId(id).to_be_bytes().as_slice(),
-            _MessageKind::String.to_bytes(),
-            size.to_be_bytes().as_slice(),
-            data,
-        ].concat()
-    }
     ///
     /// Testing TcpSocket messaging
     #[test]
@@ -154,7 +143,7 @@ mod tcp_socket {
     fn server(addr: &str, exit: Arc<AtomicBool>) {
         let dbgid = DbgId("Server".to_owned());
         let addr = addr.to_owned();
-        let handle = thread::Builder::new().name(format!("{}.run", &dbgid)).spawn(move || {
+        let _ = thread::Builder::new().name(format!("{}.run", &dbgid)).spawn(move || {
             let result = match TcpListener::bind(addr) {
                 Ok(socket) => {
                     match socket.accept() {
