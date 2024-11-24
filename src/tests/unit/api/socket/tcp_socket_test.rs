@@ -104,7 +104,7 @@ mod tcp_socket {
             None,
         );
         let exit = Arc::new(AtomicBool::new(false));
-        server(&addr, exit);
+        server(&addr, exit.clone());
         thread::sleep(Duration::from_secs(1));
         for (step, message, target) in test_data {
             match socket.send(&message) {
@@ -136,6 +136,7 @@ mod tcp_socket {
                 },
             };
         }
+        exit.store(true, Ordering::SeqCst);
         test_duration.exit();
     }
     ///
@@ -171,5 +172,4 @@ mod tcp_socket {
         });
 
     }
-
 }
