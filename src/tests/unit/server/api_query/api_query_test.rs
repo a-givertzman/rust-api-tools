@@ -145,11 +145,11 @@ mod tests {
         ];
         for testEntry in testData {
             let bytes = testEntry.input.as_bytes();
-            let apiQuery = ApiQuery::fromBytes(bytes.into());
+            let apiQuery = ApiQuery::from_bytes(bytes.into());
 
             assert!(
-                apiQuery.authToken() == testEntry.out.authToken(), 
-                "\nparsed apiQuery authToken: {:?} \ntarget apiQuery authToken: {:?}", apiQuery.authToken(), testEntry.out.authToken(),
+                apiQuery.auth_token() == testEntry.out.auth_token(), 
+                "\nparsed apiQuery authToken: {:?} \ntarget apiQuery authToken: {:?}", apiQuery.auth_token(), testEntry.out.auth_token(),
             );
             assert!(
                 apiQuery.id() == testEntry.out.id(), 
@@ -160,37 +160,37 @@ mod tests {
                 "\nparsed apiQuery debug: {:?} \ntarget apiQuery debug: {:?}", apiQuery.debug, testEntry.out.debug,
             );
             assert!(
-                apiQuery.keepAlive == testEntry.out.keepAlive, 
-                "\nparsed apiQuery keepAlive: {:?} \ntarget apiQuery keepAlive: {:?}", apiQuery.keepAlive, testEntry.out.keepAlive,
+                apiQuery.keep_alive == testEntry.out.keep_alive, 
+                "\nparsed apiQuery keepAlive: {:?} \ntarget apiQuery keepAlive: {:?}", apiQuery.keep_alive, testEntry.out.keep_alive,
             );
             match apiQuery.query() {
                 ApiQueryType::Sql(_) => {
                     assert!(
-                        apiQuery.keepAlive == testEntry.out.keepAlive, 
+                        apiQuery.keep_alive == testEntry.out.keep_alive, 
                         "\nparsed apiQuery query: 'ApiQueryType::Sql' \ntarget apiQuery query: {:?}", testEntry.queryVariant,
                     );        
                 },
                 ApiQueryType::Python(_) => {
                     assert!(
-                        apiQuery.keepAlive == testEntry.out.keepAlive, 
+                        apiQuery.keep_alive == testEntry.out.keep_alive, 
                         "\nparsed apiQuery query: 'ApiQueryType::Python' \ntarget apiQuery query: {:?}", testEntry.queryVariant,
                     );
                 },
                 ApiQueryType::Executable(_) => {
                     assert!(
-                        apiQuery.keepAlive == testEntry.out.keepAlive, 
+                        apiQuery.keep_alive == testEntry.out.keep_alive, 
                         "\nparsed apiQuery query: 'ApiQueryType::Executable' \ntarget apiQuery query: {:?}", testEntry.queryVariant,
                     );
                 },
                 ApiQueryType::Unknown => {
                     assert!(
-                        apiQuery.keepAlive == testEntry.out.keepAlive, 
+                        apiQuery.keep_alive == testEntry.out.keep_alive, 
                         "\nparsed apiQuery query: 'ApiQueryType::Unknown' \ntarget apiQuery query: {:?}", testEntry.queryVariant,
                     );
                 },
                 ApiQueryType::Error(_) => {
                     assert!(
-                        apiQuery.keepAlive == testEntry.out.keepAlive, 
+                        apiQuery.keep_alive == testEntry.out.keep_alive, 
                         "\nparsed apiQuery query: 'ApiQueryType::Error' \ntarget apiQuery query: {:?}", testEntry.queryVariant,
                     );                    
                 },

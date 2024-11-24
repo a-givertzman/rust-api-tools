@@ -2,21 +2,30 @@
 name = "api-tools"
 version = "0.0.6"
 edition = "2021"
-
+#
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+#
+# update dependencies using command
+# rm ./Cargo.lock &&  cargo clean && cargo update
 
 [dependencies]
 log = "^0.4"
 env_logger = "^0.11"
-
-testing = { git = "https://github.com/a-givertzman/rust-testing.git", tag = "0.0.2" }
+#
+# date & time
+chrono = "^0.4"
+#
+testing = { git = "https://github.com/a-givertzman/rust-testing.git", tag = "0.1.2" }
 debugging = { git = "https://github.com/a-givertzman/rust-debuging.git", tag = "0.0.1" }
-
+#
+# Collections
 indexmap = {version = "^2.1", features = ["serde"] }
-
+#
+# Serde
 serde = { version = "^1.0", features = ["derive"] }
 serde_json = "^1.0"
-
+#
+# Database
 postgres = { version = "^0.19", features = ["with-chrono-0_4", "with-serde_json-1"] }
 
 [lib]

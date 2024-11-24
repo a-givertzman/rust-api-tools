@@ -8,3 +8,5 @@ pub mod client;
 pub mod tcp;
 
 pub mod api;
+
+pub mod debug;
