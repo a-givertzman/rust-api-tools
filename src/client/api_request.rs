@@ -112,7 +112,7 @@ impl ApiRequest {
         match serde_json::to_vec(&self) {
             Ok(query) => {
                 log::trace!("{}.fetch | query: {:#?}", self.dbgid, query);
-                match self.socket.send(&query) {
+                match self.socket.send(&query, None) {
                     Ok(_id) => {
                         match self.socket.read() {
                             Ok((_id, msg)) => match msg {

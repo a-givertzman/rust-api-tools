@@ -107,7 +107,7 @@ mod tcp_socket {
         server(&addr, exit.clone());
         thread::sleep(Duration::from_secs(1));
         for (step, message, target) in test_data {
-            match socket.send(&message) {
+            match socket.send(&message, None) {
                 Ok(target_id) => {
                     log::debug!("{} | step {}  Sent | id: {:?}", dbgid, step, target_id);
                     match socket.read() {

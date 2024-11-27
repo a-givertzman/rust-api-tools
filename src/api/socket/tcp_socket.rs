@@ -49,8 +49,8 @@ impl TcpSocket {
     /// - `message` - [TcpMessage] provides `build` and `parse`
     /// - `stream` - TcpStream if already connected,
     ///    - If None specified, connection will be opened internally only when required 
-    pub fn new(dbid: &DbgId, address: impl ToSocketAddrs + std::fmt::Debug, message: TcpMessage, stream: Option<Arc<TcpStream>>) -> Self {
-        let dbgid = DbgId::with_parent(&dbid, "TcpSocket");
+    pub fn new(dbgid: &DbgId, address: impl ToSocketAddrs + std::fmt::Debug, message: TcpMessage, stream: Option<Arc<TcpStream>>) -> Self {
+        let dbgid = DbgId::with_parent(&dbgid, "TcpSocket");
         let address = match address.to_socket_addrs() {
             Ok(mut addrs) => match addrs.next() {
                 Some(addr) => addr,
@@ -124,12 +124,14 @@ impl TcpSocket {
     }
     ///
     /// Sending a [Message] via TCP socket
-    pub fn send(&mut self, bytes: &[u8]) -> Result<FieldId, StrErr> {
+    pub fn send(&mut self, bytes: &[u8], msg_id: Option<u32>) -> Result<FieldId, StrErr> {
         log::trace!("{}.send | bytes: {:#?}", self.dbgid, bytes);
         match self.connect() {
             Ok(stream) => {
-                self.msg_id = (self.msg_id % u32::MAX) + 1;
-                let msg_id = self.msg_id;
+                let msg_id = msg_id.unwrap_or_else(|| {
+                    self.msg_id = (self.msg_id % u32::MAX) + 1;
+                    self.msg_id
+                });
                 let bytes = self.message.build(bytes, msg_id);
                 match BufWriter::new(stream.as_ref()).write_all(&bytes) {
                     Ok(_) => {
@@ -193,13 +195,11 @@ impl TcpSocket {
                                     log::warn!("{}", err);
                                 }
                             };
-                            if len < Self::BUF_LEN {
-                                if len == 0 {
-                                    if let Err(err) = self.close() {
-                                        log::warn!("{}.read | Close tcp stream error: {:?}", self.dbgid, err);
-                                    }
-                                    return Err(format!("{}.read | tcp stream closed", self.dbgid).into());
+                            if len == 0 {
+                                if let Err(err) = self.close() {
+                                    log::warn!("{}.read | Close tcp stream error: {:?}", self.dbgid, err);
                                 }
+                                return Err(format!("{}.read | tcp stream closed", self.dbgid).into());
                             }
                         }
                         Err(err) => {

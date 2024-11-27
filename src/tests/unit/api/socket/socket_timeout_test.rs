@@ -32,6 +32,7 @@ mod socket_timeout {
     fn init_each() -> () {}
     ///
     /// Testing Socket read timeout
+    /// - research test
     #[test]
     fn read_timeout() {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
