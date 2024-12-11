@@ -125,7 +125,7 @@ impl TcpSocket {
     ///
     /// Sending a [Message] via TCP socket
     pub fn send(&mut self, bytes: &[u8], msg_id: Option<u32>) -> Result<FieldId, StrErr> {
-        log::trace!("{}.send | bytes: {:#?}", self.dbgid, bytes);
+        log::trace!("{}.send | bytes: {:?}", self.dbgid, bytes);
         match self.connect() {
             Ok(stream) => {
                 let msg_id = msg_id.unwrap_or_else(|| {
