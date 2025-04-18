@@ -32,7 +32,7 @@
 //!     - 49, Duration
 //!     - .., ...
 //! 
-use crate::{debug::dbg_id::DbgId, error::str_err::StrErr};
+use sal_core::{dbg::Dbg, error::Error};
 use super::fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn};
 ///
 /// 
@@ -42,7 +42,7 @@ pub type Bytes = Vec<u8>;
 pub trait MessageParse<T> {
     ///
     /// Extracting some pattern from input `bytes`
-    fn parse(&mut self, bytes: Bytes) -> Result<T, StrErr>;
+    fn parse(&mut self, bytes: Bytes) -> Result<T, Error>;
     ///
     /// Resets state to the initial
     fn reset(&mut self);
@@ -60,7 +60,7 @@ pub enum MessageField {
 ///
 /// Socket Message
 pub struct Message<T> {
-    dbgid: DbgId,
+    dbg: Dbg,
     build: Vec<MessageField>, 
     parse: Box<dyn MessageParse<T>>,
 }
@@ -70,7 +70,7 @@ pub struct Message<T> {
 impl<T> std::fmt::Debug for Message<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Message")
-            .field("dbgid", &self.dbgid)
+            .field("dbgid", &self.dbg)
             .field("build", &self.build)
             .finish()
     }
@@ -81,12 +81,12 @@ impl<T> Message<T> {
     ///
     /// Returns `Message` new instance 
     pub fn new(
-        dbgid: &DbgId,
+        parent: impl Into<String>,
         build: Vec<MessageField>,
         parse: impl MessageParse<T> + 'static
     ) -> Self {
         Self {
-            dbgid: DbgId(format!("{}/Message", dbgid)),
+            dbg: Dbg::new(parent.into(), "Message"),
             build,
             parse: Box::new(parse),
         }
@@ -117,8 +117,10 @@ impl<T> MessageParse<T> for Message<T> {
     /// Extracting [Message] fields from the input bytes
     /// - returns `Id`, `Kind`, `Size` & `Bytes` following by the `Size`
     /// - call this method multiple times, until the end of message
-    fn parse(&mut self, bytes: Bytes) -> Result<T, StrErr> {
-        self.parse.parse(bytes)
+    fn parse(&mut self, bytes: Bytes) -> Result<T, Error> {
+        self.parse
+            .parse(bytes)
+            .map_err(|err| Error::new(&self.dbg, "parse").pass(err))
     }
     //
     //

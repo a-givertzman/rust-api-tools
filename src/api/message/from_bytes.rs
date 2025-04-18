@@ -1,8 +1,8 @@
-use crate::error::str_err::StrErr;
+use sal_core::error::Error;
 ///
 /// 
 pub trait FromBytes: Sized {
-    fn from_bytes(bytes: &[u8]) -> Result<Self, StrErr>;
+    fn from_bytes(bytes: &[u8]) -> Result<Self, Error>;
 }
 // ///
 // /// 

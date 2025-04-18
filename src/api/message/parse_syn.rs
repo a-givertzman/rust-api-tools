@@ -1,10 +1,10 @@
-use crate::{debug::dbg_id::DbgId, error::str_err::StrErr};
+use sal_core::{dbg::Dbg, error::Error};
 use super::{fields::FieldSyn, message::{Bytes, MessageParse}};
 ///
 /// Extracting `Syn` symbol from the input bytes
 /// - Used to identify a start of the message
 pub struct ParseSyn {
-    dbgid: DbgId,
+    dbg: Dbg,
     conf: FieldSyn,
     value: Option<()>,
 }
@@ -13,9 +13,9 @@ pub struct ParseSyn {
 impl ParseSyn {
     ///
     /// Returns [ParseSyn] new instance
-    pub fn new(dbgid: &DbgId, conf: FieldSyn) -> Self {
+    pub fn new(parent: impl Into<String>, conf: FieldSyn) -> Self {
         Self {
-            dbgid: DbgId(format!("{}/ParseSyn", dbgid)),
+            dbg: Dbg::new(parent, "ParseSyn"),
             conf,
             value: None,
         }
@@ -28,7 +28,8 @@ impl MessageParse<Vec<u8>> for ParseSyn {
     /// Extracting `Syn` symbol from the input bytes
     /// - returns bytes following by the `Syn`
     /// - call this method multiple times, until the end of message
-    fn parse(&mut self, bytes: Bytes) -> Result<Vec<u8>, StrErr> {
+    fn parse(&mut self, bytes: Bytes) -> Result<Vec<u8>, Error> {
+        let error = Error::new(&self.dbg, "parse");
         match self.value {
             Some(_) => Ok(bytes),
             None => {
@@ -45,7 +46,7 @@ impl MessageParse<Vec<u8>> for ParseSyn {
                     }
                     None => {
                         let dbg_bytes = if bytes.len() > 16 { format!("{:?}...", &bytes[..16]) } else { format!("{:?}", bytes) };
-                        Err(format!("{}.parse | Syn not found in message: {:?}", self.dbgid, dbg_bytes ).into())
+                        Err(error.err(format!("Syn not found in message: {:?}", dbg_bytes)))
                     }
                 }
             }

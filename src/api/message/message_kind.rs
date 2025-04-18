@@ -32,7 +32,8 @@
 //!     - 49, Duration
 //!     - .., ...
 //! 
-use crate::error::str_err::StrErr;
+use sal_core::error::Error;
+
 use super::from_bytes::FromBytes;
 ///
 /// Internal Kind of Message
@@ -98,7 +99,7 @@ impl MessageKind {
 impl FromBytes for MessageKind {
     ///
     /// Returns [MessageKind] converted from `bytes`
-    fn from_bytes(bytes: &[u8]) -> Result<Self, StrErr> {
+    fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
         match bytes {
             [Self::ANY] => Ok(MessageKind::Any),
             [Self::EMPTY] => Ok(MessageKind::Empty),
@@ -115,7 +116,7 @@ impl FromBytes for MessageKind {
             [Self::STRING] => Ok(MessageKind::String),
             [Self::TIMESTAMP] => Ok(MessageKind::Timestamp),
             [Self::DURATION] => Ok(MessageKind::Duration),
-            [..] => Err(StrErr(format!("MessageKind.from_bytes | Wrong or Empty input: {:?}", &bytes[..16]))),
+            [..] => Err(Error::new("MessageKind", "from_bytes").err(format!("Wrong or Empty input: {:?}", &bytes[..16]))),
         }
     }
 }
