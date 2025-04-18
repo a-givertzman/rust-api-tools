@@ -2,9 +2,9 @@
 
 mod socket_timeout {
     use std::{io::{BufReader, Read}, net::{Shutdown, TcpListener, TcpStream}, sync::{Arc, Once}, time::{Duration, Instant}};
+    use sal_core::{dbg::Dbg, error::Error};
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::{debug::dbg_id::DbgId, error::str_err::StrErr};
     ///
     /// inline increment
     trait Inc<T> {
@@ -38,9 +38,10 @@ mod socket_timeout {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
         init_once();
         init_each();
-        let dbgid = DbgId("test".to_owned());
-        log::debug!("\n{}", dbgid);
-        let test_duration = TestDuration::new(&dbgid, Duration::from_secs(10));
+        let dbg = Dbg::own("socket_timeout");
+        let error = Error::new(&dbg, "");
+        log::debug!("\n{}", dbg);
+        let test_duration = TestDuration::new(&dbg, Duration::from_secs(10));
         test_duration.run().unwrap();
         let time = Instant::now();
         let timeout = Duration::from_secs(3);
@@ -50,11 +51,11 @@ mod socket_timeout {
             Ok(_) => {
                 let socket = TcpStream::connect(addr).unwrap();
                 if let Err(err) = socket.set_read_timeout(Some(timeout)) {
-                    let message = format!("{}.connect | set_read_timeout error: \n\t{:?}", dbgid, err);
+                    let message = format!("{}.connect | set_read_timeout error: \n\t{:?}", dbg, err);
                     log::warn!("{}", message);
                 }
                 if let Err(err) = socket.set_write_timeout(Some(timeout)) {
-                    let message = format!("{}.connect | set_write_timeout error: \n\t{:?}", dbgid, err);
+                    let message = format!("{}.connect | set_write_timeout error: \n\t{:?}", dbg, err);
                     log::warn!("{}", message);
                 }
                 let socket = Arc::new(socket);
@@ -62,7 +63,7 @@ mod socket_timeout {
                 let mut buf = vec![0; 1024];
                 let result = stream.read(&mut buf);
                 let elapsed = time.elapsed();
-                log::debug!("{} | Read result: {:?}", dbgid, result);
+                log::debug!("{} | Read result: {:?}", dbg, result);
                 assert!(result.is_err(), "step {} \nresult: {:?}\ntarget: {:?}", step.inc(), result.is_err(), true);
                 let target = timeout + Duration::from_millis(500);
                 assert!(elapsed < target, "step {} \nresult: {:?}\ntarget: {:?}", step.inc(), elapsed, target);
@@ -72,9 +73,9 @@ mod socket_timeout {
                 Ok(())
             }
             Err(err) => {
-                let err = format!("{} | Error: {:?}", dbgid, err);
+                let err = error.pass(err.to_string());
                 log::error!("{}", err);
-                Err(StrErr(err))
+                Err(err)
             }
         };
         assert!(result.is_ok(), "step {} \nresult: {:?}\ntarget: {:?}", step.inc(), result.is_ok(), true);

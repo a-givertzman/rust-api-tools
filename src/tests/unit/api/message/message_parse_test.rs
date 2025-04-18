@@ -2,9 +2,10 @@
 
 mod message {
     use std::{sync::Once, time::Duration};
+    use sal_core::dbg::Dbg;
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::{api::message::{fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn}, message::{Message, MessageField, MessageParse}, message_kind::MessageKind, parse_data::ParseData, parse_id::ParseId, parse_kind::ParseKind, parse_size::ParseSize, parse_syn::ParseSyn}, debug::dbg_id::DbgId};
+    use crate::api::message::{fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn}, message::{Message, MessageField, MessageParse}, message_kind::MessageKind, parse_data::ParseData, parse_id::ParseId, parse_kind::ParseKind, parse_size::ParseSize, parse_syn::ParseSyn};
     ///
     ///
     static INIT: Once = Once::new();
@@ -27,9 +28,9 @@ mod message {
         init_once();
         init_each();
         log::debug!("");
-        let dbgid = DbgId("test".to_owned());
-        log::debug!("\n{}", dbgid);
-        let test_duration = TestDuration::new(&dbgid, Duration::from_secs(1));
+        let dbg = Dbg::own("message_parse");
+        log::debug!("\n{}", dbg);
+        let test_duration = TestDuration::new(&dbg, Duration::from_secs(1));
         test_duration.run().unwrap();
         fn to_bytes(data: &str, id: u32) -> Vec<u8> {
             let data = data.as_bytes();
@@ -88,18 +89,18 @@ mod message {
             ),
         ];
         let mut message = ParseData::new(
-            &dbgid,
+            &dbg,
             ParseSize::new(
-                &dbgid,
+                &dbg,
                 FieldSize(4),
                 ParseKind::new(
-                    &dbgid,
+                    &dbg,
                     FieldKind(MessageKind::Any),
                     ParseId::new(
-                        &dbgid,
+                        &dbg,
                         FieldId(4),
                         ParseSyn::new(
-                            &dbgid,
+                            &dbg,
                             FieldSyn::default(),
                         ),
                     ),
@@ -111,7 +112,7 @@ mod message {
             for bytes in messages {
                 match message.parse(bytes) {
                     Ok((id, kind, size, bytes)) => {
-                        log::debug!("{} | step: {},  id: {:?},  kind: {:?},  size: {:?},  bytes: {:?}", dbgid, step, id, kind, size, bytes);
+                        log::debug!("{} | step: {},  id: {:?},  kind: {:?},  size: {:?},  bytes: {:?}", dbg, step, id, kind, size, bytes);
                         let result = id;
                         assert!(result == target_id, "step: {} \nresult: {:?}\ntarget: {:?}", step, result, target_id);
                         let result = kind;
@@ -121,7 +122,7 @@ mod message {
                         result_bytes.extend(bytes);
                     }
                     Err(err) => {
-                        log::warn!("{} | {}",dbgid, err);
+                        log::warn!("{} | {}",dbg, err);
                     }
                 }
             }
@@ -138,9 +139,9 @@ mod message {
         init_once();
         init_each();
         log::debug!("");
-        let dbgid = DbgId("test".to_owned());
-        log::debug!("\n{}", dbgid);
-        let test_duration = TestDuration::new(&dbgid, Duration::from_secs(1));
+        let dbg = Dbg::own("parse_advanced");
+        log::debug!("\n{}", dbg);
+        let test_duration = TestDuration::new(&dbg, Duration::from_secs(1));
         test_duration.run().unwrap();
         fn to_bytes(data: &str, id: u32) -> Vec<u8> {
             let data = data.as_bytes();
@@ -233,7 +234,7 @@ mod message {
             ),
         ];
         let mut message = Message::new(
-            &dbgid,
+            &dbg,
             vec![
                 MessageField::Syn(FieldSyn::default()),
                 MessageField::Id(FieldId(4)),
@@ -242,18 +243,18 @@ mod message {
                 MessageField::Data(FieldData(vec![]))
             ],
             ParseData::new(
-                &dbgid,
+                &dbg,
                 ParseSize::new(
-                    &dbgid,
+                    &dbg,
                     FieldSize(4),
                     ParseKind::new(
-                        &dbgid,
+                        &dbg,
                         FieldKind(MessageKind::Any),
                         ParseId::new(
-                            &dbgid,
+                            &dbg,
                             FieldId(4),
                             ParseSyn::new(
-                                &dbgid,
+                                &dbg,
                                 FieldSyn::default(),
                             ),
                         ),
@@ -266,7 +267,7 @@ mod message {
             for bytes in messages {
                 match message.parse(bytes) {
                     Ok((id, kind, size, bytes)) => {
-                        log::debug!("{} | step: {},  id: {:?},  kind: {:?},  size: {:?},  data: {:?}", dbgid, step, id, kind, size, bytes);
+                        log::debug!("{} | step: {},  id: {:?},  kind: {:?},  size: {:?},  data: {:?}", dbg, step, id, kind, size, bytes);
                         let result = id;
                         assert!(result == target_id, "step: {} \nresult: {:?}\ntarget: {:?}", step, result, target_id);
                         let result = kind;
@@ -278,7 +279,7 @@ mod message {
                         result_data = Some(result);
                     }
                     Err(err) => {
-                        log::debug!("{} | {}",dbgid, err);
+                        log::debug!("{} | {}",dbg, err);
                     }
                 }
             }

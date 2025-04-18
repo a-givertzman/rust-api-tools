@@ -3,18 +3,16 @@
 mod tcp_socket {
     use std::{io::{Read, Write}, net::TcpListener, sync::{atomic::{AtomicBool, AtomicUsize, Ordering}, Arc, Once}, thread, time::Duration};
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
+    use sal_core::{dbg::Dbg, error::Error};
     use testing::{session::{teardown::Teardown, test_session::TestSession}, stuff::max_test_duration::TestDuration};
-    use crate::{
-        api::{
+    use crate::api::{
             message::{
                 fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn},
                 message::MessageField, message_kind::MessageKind, msg_kind::MsgKind,
                 parse_data::ParseData, parse_id::ParseId, parse_kind::ParseKind, parse_size::ParseSize, parse_syn::ParseSyn,
             },
             socket::tcp_socket::{TcpMessage, TcpSocket},
-        },
-        debug::dbg_id::DbgId, error::str_err::StrErr,
-    };
+        };
     ///    
     static INIT: Once = Once::new();
     static TEARDOWN_COUNT: AtomicUsize = AtomicUsize::new(0);
@@ -41,7 +39,7 @@ mod tcp_socket {
         init_once();
         init_each();
         println!("");
-        let dbgid = DbgId("test TcpSocket".into());
+        let dbgid = Dbg::own("test TcpSocket");
         println!("{}", dbgid);
         let test_duration = TestDuration::new(&dbgid, Duration::from_secs(120));
         test_duration.run().unwrap();
@@ -142,33 +140,34 @@ mod tcp_socket {
     ///
     /// Server side
     fn server(addr: &str, exit: Arc<AtomicBool>) {
-        let dbgid = DbgId("Server".to_owned());
+        let dbg = Dbg::own("Server");
+        let error = Error::new(&dbg, "server");
         let addr = addr.to_owned();
-        let _ = thread::Builder::new().name(format!("{}.run", &dbgid)).spawn(move || {
+        let _ = thread::Builder::new().name(format!("{}.run", &dbg)).spawn(move || {
             let result = match TcpListener::bind(addr) {
                 Ok(socket) => {
                     match socket.accept() {
                         Ok((mut stream, addr)) => {
-                            log::debug!("{}.run | connection: {:?}", dbgid, addr);
+                            log::debug!("{}.run | connection: {:?}", dbg, addr);
                             stream.set_read_timeout(Some(Duration::from_secs(3))).unwrap();
                             let mut buf = vec![0; 4096];
                             loop {
                                 let len = stream.read(&mut buf).unwrap();
-                                log::debug!("{}.run | Received: {:?}", dbgid, &buf[..len]);
+                                log::debug!("{}.run | Received: {:?}", dbg, &buf[..len]);
                                 stream.write_all(&mut buf[..len]).unwrap();
                                 if exit.load(Ordering::SeqCst) {
                                     break;
                                 }
                             }
-                            log::debug!("{}.run | Exit", dbgid);
+                            log::debug!("{}.run | Exit", dbg);
                             Ok(())
                         }
-                        Err(err) => Err(err),
+                        Err(err) => Err(error.pass(err.to_string())),
                     }
                 }
-                Err(err) => Err(err),
+                Err(err) => Err(error.pass(err.to_string())),
             };
-            assert!(result.is_ok(), "\n result: {:?}\n target: {:?}", result, Ok::<(), StrErr>(()));
+            assert!(result.is_ok(), "\n result: {:?}\n target: {:?}", result, Ok::<(), Error>(()));
         });
 
     }

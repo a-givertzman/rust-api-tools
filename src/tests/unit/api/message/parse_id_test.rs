@@ -2,9 +2,10 @@
 
 mod parse_id {
     use std::{sync::Once, time::Duration};
+    use sal_core::dbg::Dbg;
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::{api::message::{fields::{FieldId, FieldSyn}, message::MessageParse, message_kind::MessageKind, parse_id::ParseId, parse_syn::ParseSyn}, debug::dbg_id::DbgId};
+    use crate::api::message::{fields::{FieldId, FieldSyn}, message::MessageParse, message_kind::MessageKind, parse_id::ParseId, parse_syn::ParseSyn};
     ///
     ///
     static INIT: Once = Once::new();
@@ -27,9 +28,9 @@ mod parse_id {
         init_once();
         init_each();
         log::debug!("");
-        let dbgid = DbgId("test".to_owned());
-        log::debug!("\n{}", dbgid);
-        let test_duration = TestDuration::new(&dbgid, Duration::from_secs(1));
+        let dbg = Dbg::own("parse_id");
+        log::debug!("\n{}", dbg);
+        let test_duration = TestDuration::new(&dbg, Duration::from_secs(1));
         test_duration.run().unwrap();
         fn to_bytes(data: &str, id: u32) -> Vec<u8> {
             let data = data.as_bytes();
@@ -67,10 +68,10 @@ mod parse_id {
             ),
         ];
         let mut message = ParseId::new(
-            &dbgid,
+            &dbg,
             FieldId(4),
             ParseSyn::new(
-                &dbgid,
+                &dbg,
                 FieldSyn::default(),
             ),
         );
@@ -79,13 +80,13 @@ mod parse_id {
             for bytes in messages {
                 match message.parse(bytes) {
                     Ok((id, bytes)) => {
-                        log::debug!("{} | step: {},  id: {:?},  bytes: {:?}", dbgid, step, id, bytes);
+                        log::debug!("{} | step: {},  id: {:?},  bytes: {:?}", dbg, step, id, bytes);
                         let result = id;
                         assert!(result == target_id, "step: {} \nresult: {:?}\ntarget: {:?}", step, result, target_id);
                         result_bytes.extend(bytes);
                     }
                     Err(err) => {
-                        log::warn!("{} | {}",dbgid, err);
+                        log::warn!("{} | {}",dbg, err);
                     }
                 }
             }

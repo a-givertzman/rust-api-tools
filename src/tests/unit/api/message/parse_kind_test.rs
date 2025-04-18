@@ -2,9 +2,10 @@
 
 mod parse_kind {
     use std::{sync::Once, time::Duration};
+    use sal_core::dbg::Dbg;
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::{api::message::{fields::{FieldId, FieldKind, FieldSyn}, message::MessageParse, message_kind::MessageKind, parse_id::ParseId, parse_kind::ParseKind, parse_syn::ParseSyn}, debug::dbg_id::DbgId};
+    use crate::api::message::{fields::{FieldId, FieldKind, FieldSyn}, message::MessageParse, message_kind::MessageKind, parse_id::ParseId, parse_kind::ParseKind, parse_syn::ParseSyn};
     ///
     ///
     static INIT: Once = Once::new();
@@ -27,9 +28,9 @@ mod parse_kind {
         init_once();
         init_each();
         log::debug!("");
-        let dbgid = DbgId("test".to_owned());
-        log::debug!("\n{}", dbgid);
-        let test_duration = TestDuration::new(&dbgid, Duration::from_secs(1));
+        let dbg = Dbg::own("parse_kind");
+        log::debug!("\n{}", dbg);
+        let test_duration = TestDuration::new(&dbg, Duration::from_secs(1));
         test_duration.run().unwrap();
         fn to_bytes(data: &str, id: u32) -> Vec<u8> {
             let data = data.as_bytes();
@@ -67,13 +68,13 @@ mod parse_kind {
             ),
         ];
         let mut message = ParseKind::new(
-            &dbgid,
+            &dbg,
             FieldKind(MessageKind::Any),
             ParseId::new(
-                &dbgid,
+                &dbg,
                 FieldId(4),
                 ParseSyn::new(
-                    &dbgid,
+                    &dbg,
                     FieldSyn::default(),
                 ),
             ),
@@ -83,7 +84,7 @@ mod parse_kind {
             for bytes in messages {
                 match message.parse(bytes) {
                     Ok((id, kind, bytes)) => {
-                        log::debug!("{} | step: {},  id: {:?},  kind: {:?},  bytes: {:?}", dbgid, step, id, kind, bytes);
+                        log::debug!("{} | step: {},  id: {:?},  kind: {:?},  bytes: {:?}", dbg, step, id, kind, bytes);
                         let result = id;
                         assert!(result == target_id, "step: {} \nresult: {:?}\ntarget: {:?}", step, result, target_id);
                         let result = kind;
@@ -91,7 +92,7 @@ mod parse_kind {
                         result_bytes.extend(bytes);
                     }
                     Err(err) => {
-                        log::warn!("{} | {}",dbgid, err);
+                        log::warn!("{} | {}",dbg, err);
                     }
                 }
             }

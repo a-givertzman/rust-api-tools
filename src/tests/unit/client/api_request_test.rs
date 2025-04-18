@@ -2,12 +2,13 @@
 
 mod api_request {
     use std::{collections::HashMap, process::Command, sync::{atomic::AtomicUsize, Once}, thread, time::{Duration, Instant}};
+    use sal_core::dbg::Dbg;
     use serde_json::json;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
     use testing::{session::teardown::Teardown, stuff::max_test_duration::TestDuration};
     use crate::{
         api::reply::api_reply::ApiReply, client::{api_query::{ApiQuery, ApiQueryExecutable, ApiQueryKind, ApiQueryPython, ApiQuerySql}, api_request::ApiRequest},
-        debug::dbg_id::DbgId, tests::unit::client::prepare_postgres::TestDatabasePostgres,
+        tests::unit::client::prepare_postgres::TestDatabasePostgres,
     };
     ///    
     static INIT: Once = Once::new();
@@ -15,34 +16,34 @@ mod api_request {
     ///
     /// once called initialisation
     /// returns ApiServer PID
-    fn init_once(self_id: &DbgId, database: &str, tmp_path: &str, git_repo: &str) -> u32 {
+    fn init_once(dbg: &Dbg, database: &str, tmp_path: &str, git_repo: &str) -> u32 {
         let mut child: u32 = 0;
         INIT.call_once(|| {
                 // implement your initialisation code to be called only once for current test file
-                let mut client = TestDatabasePostgres::connect_db(&self_id.0, "postgres", "postgres", "localhost:5432", "").unwrap();
-                TestDatabasePostgres::create_db(&self_id.0, &mut client, database).unwrap();
+                let mut client = TestDatabasePostgres::connect_db(dbg, "postgres", "postgres", "localhost:5432", "").unwrap();
+                TestDatabasePostgres::create_db(dbg, &mut client, database).unwrap();
                 client.close().unwrap();
-                let mut client = TestDatabasePostgres::connect_db(&self_id.0, database, database, "localhost:5432", database).unwrap();
-                TestDatabasePostgres::create_db_table(&self_id.0, &mut client, database, "customer").unwrap();
+                let mut client = TestDatabasePostgres::connect_db(dbg, database, database, "localhost:5432", database).unwrap();
+                TestDatabasePostgres::create_db_table(dbg, &mut client, database, "customer").unwrap();
                 client.close().unwrap();
                 let setup_sh = "./src/tests/unit/client/setup-build.sh";
                 log::debug!("{}.init_once | Preparing new instance of api-server...
                     \t - Be sure you are have internet connection for git clone
                     \t - Be sure local address '0.0.0.0:8080' is not busy before test executed
-                    \t - Check '{}'",self_id, setup_sh
+                    \t - Check '{}'",dbg, setup_sh
                 );
                 let output = Command::new(setup_sh)
                     .arg(tmp_path)
                     .arg(git_repo)
                     .output()
                     .expect("Failed to exec setup-build.sh");
-                log::debug!("{}.init_once | setup-build: {:?}",self_id, output);
+                log::debug!("{}.init_once | setup-build: {:?}",dbg, output);
                 let run_sh = "./src/tests/unit/client/setup-run.sh";
                 let p = Command::new(run_sh)
                     .arg(tmp_path)
                     .spawn()
                     .expect("Failed to exec setup-run.sh");
-                log::debug!("{}.init_once | setup-run: {:?}",self_id, p);
+                log::debug!("{}.init_once | setup-run: {:?}",dbg, p);
                 child = p.id()
             }
         );
@@ -50,9 +51,9 @@ mod api_request {
     }
     ///
     /// Once called after all tests
-    fn teardown_once(self_id: &DbgId, database: &str, tmp_path: &str, child_id: u32) {
-        let mut client = TestDatabasePostgres::connect_db(&self_id.0, "postgres", "postgres", "localhost:5432", "").unwrap();
-        TestDatabasePostgres::drop_db(&self_id.0, &mut client, database).unwrap();
+    fn teardown_once(dbg: &Dbg, database: &str, tmp_path: &str, child_id: u32) {
+        let mut client = TestDatabasePostgres::connect_db(dbg, "postgres", "postgres", "localhost:5432", "").unwrap();
+        TestDatabasePostgres::drop_db(dbg, &mut client, database).unwrap();
         let p = Command::new("rm")
             .arg("rf")
             .arg(tmp_path)
@@ -76,16 +77,16 @@ mod api_request {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
         init_each();
         println!("");
-        let dbgid = DbgId("test ApiRequest".into());
-        println!("{}", dbgid);
-        let test_duration = TestDuration::new(&dbgid, Duration::from_secs(120));
+        let dbg = Dbg::own("test ApiRequest");
+        println!("{}", dbg);
+        let test_duration = TestDuration::new(&dbg, Duration::from_secs(120));
         test_duration.run().unwrap();
         let database = "test_api_query";
         let tmp_path = "/tmp/api-tools-test/api-server/";
         let git_repo = "https://github.com/a-givertzman/api-server.git";
-        let child_id = init_once(&dbgid, database, tmp_path, git_repo);
+        let child_id = init_once(&dbg, database, tmp_path, git_repo);
         let _teardown_once = || {
-            teardown_once(&dbgid, &database, &tmp_path, child_id);
+            teardown_once(&dbg, &database, &tmp_path, child_id);
         };
         let _teardown = Teardown::new(&TEARDOWN_COUNT, &|| {}, &_teardown_once);
         let port = "8080";     //TestSession::free_tcp_port_str();
@@ -131,7 +132,7 @@ mod api_request {
             ),
         ];
         let mut request = ApiRequest::new(
-            &dbgid,
+            &dbg,
             &addtess,
             token, 
             ApiQuery::new(ApiQueryKind::Sql(ApiQuerySql::new("", "")), false),
@@ -147,7 +148,7 @@ mod api_request {
                     println!("\nreply: {:?}", reply);
                 },
                 Err(err) => {
-                    panic!("{} | Error: {:?}", dbgid, err);
+                    panic!("{} | Error: {:?}", dbg, err);
                 },
             };
             let result = json!(request);
@@ -166,16 +167,16 @@ mod api_request {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
         init_each();
         println!("");
-        let dbgid = DbgId("test ApiRequest".into());
-        println!("{}", dbgid);
-        let test_duration = TestDuration::new(&dbgid, Duration::from_secs(120));
+        let dbg = Dbg::own("test ApiRequest");
+        println!("{}", dbg);
+        let test_duration = TestDuration::new(&dbg, Duration::from_secs(120));
         test_duration.run().unwrap();
         let database = "test_api_query";
         let tmp_path = "/tmp/api-tools-test/api-server/";
         let git_repo = "https://github.com/a-givertzman/api-server.git";
-        let child_id = init_once(&dbgid, database, tmp_path, git_repo);
+        let child_id = init_once(&dbg, database, tmp_path, git_repo);
         let _teardown_once = || {
-            teardown_once(&dbgid, &database, &tmp_path, child_id);
+            teardown_once(&dbg, &database, &tmp_path, child_id);
         };
         let _teardown = Teardown::new(&TEARDOWN_COUNT, &|| {}, &_teardown_once);
         let port = "8080";     //TestSession::free_tcp_port_str();
@@ -221,7 +222,7 @@ mod api_request {
             // ),
         ];
         let mut request = ApiRequest::new(
-            &dbgid,
+            &dbg,
             &addtess,
             token, 
             ApiQuery::new(ApiQueryKind::Sql(ApiQuerySql::new("", "")), false),
@@ -236,7 +237,7 @@ mod api_request {
                     println!("\nreply: {:?}", reply);
                 },
                 Err(err) => {
-                    panic!("{} | Error: {:?}", dbgid, err);
+                    panic!("{} | Error: {:?}", dbg, err);
                 },
             };
             let result = json!(request);
@@ -254,16 +255,16 @@ mod api_request {
         DebugSession::init(LogLevel::Debug, Backtrace::Short);
         init_each();
         println!("");
-        let dbgid = DbgId("test ApiRequest".into());
-        println!("{}", dbgid);
-        let test_duration = TestDuration::new(&dbgid, Duration::from_secs(120));
+        let dbg = Dbg::own("test ApiRequest");
+        println!("{}", dbg);
+        let test_duration = TestDuration::new(&dbg, Duration::from_secs(120));
         test_duration.run().unwrap();
         let database = "test_api_query";
         let tmp_path = "/tmp/api-tools-test/api-server/";
         let git_repo = "https://github.com/a-givertzman/api-server.git";
-        let child_id = init_once(&dbgid, database, tmp_path, git_repo);
+        let child_id = init_once(&dbg, database, tmp_path, git_repo);
         let _teardown_once = || {
-            teardown_once(&dbgid, &database, &tmp_path, child_id);
+            teardown_once(&dbg, &database, &tmp_path, child_id);
         };
         let _teardown = Teardown::new(&TEARDOWN_COUNT, &|| {}, &_teardown_once);
         let port = "8080";     //TestSession::free_tcp_port_str();
@@ -292,7 +293,7 @@ mod api_request {
             ),
         ];
         let mut request = ApiRequest::new(
-            &dbgid,
+            &dbg,
             &addtess,
             token, 
             ApiQuery::new(ApiQueryKind::Sql(ApiQuerySql::new("", "")), false),
@@ -313,7 +314,7 @@ mod api_request {
                         println!("\nreply: {:?}", reply);
                     },
                     Err(err) => {
-                        panic!("{} | Error: {:?}", dbgid, err);
+                        panic!("{} | Error: {:?}", dbg, err);
                     },
                 };
                 let result = json!(request);
