@@ -7,10 +7,10 @@ pub trait FromBytes: Sized {
 // ///
 // /// 
 // pub trait FromBytesLe: Sized {
-//     fn from_bytes_le(bytes: &[u8]) -> Result<Self, StrErr>;
+//     fn from_bytes_le(bytes: &[u8]) -> Result<Self, Error>;
 // }
 // ///
 // /// 
 // pub trait FromBytesBe: Sized {
-//     fn from_bytes_be(bytes: &[u8]) -> Result<Self, StrErr>;
+//     fn from_bytes_be(bytes: &[u8]) -> Result<Self, Error>;
 // }
