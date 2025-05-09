@@ -1,8 +1,4 @@
-#![allow(non_snake_case)]
-
-// use log::{debug, warn};
 use serde::{Serialize, Deserialize};
-
 use crate::error::api_error::ApiError;
 
 ///
