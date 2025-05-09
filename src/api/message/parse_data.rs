@@ -1,9 +1,10 @@
-use crate::{api::message::message_kind::MessageKind, debug::dbg_id::DbgId, error::str_err::StrErr};
+use sal_core::{dbg::Dbg, error::Error};
+use crate::api::message::message_kind::MessageKind;
 use super::{fields::{FieldId, FieldSize}, message::{Bytes, MessageParse}};
 ///
 /// Extracting `Data` field from the input bytes
 pub struct ParseData {
-    dbgid: DbgId,
+    dbg: Dbg,
     field: Box<dyn MessageParse<(FieldId, MessageKind, FieldSize, Bytes)>>,
     buffer: Bytes,
     remains: Bytes,
@@ -13,9 +14,9 @@ pub struct ParseData {
 impl ParseData {
     ///
     /// Returns [ParseData] new instance
-    pub fn new(dbgid: &DbgId, field: impl MessageParse<(FieldId, MessageKind, FieldSize, Bytes)> + 'static) -> Self {
+    pub fn new(parent: impl Into<String>, field: impl MessageParse<(FieldId, MessageKind, FieldSize, Bytes)> + 'static) -> Self {
         Self {
-            dbgid: DbgId(format!("{}/ParseData", dbgid)),
+            dbg: Dbg::new(parent, "ParseData"),
             field: Box::new(field),
             buffer: vec![],
             remains: vec![],
@@ -29,7 +30,8 @@ impl MessageParse<(FieldId, MessageKind, FieldSize, Bytes)> for ParseData {
     /// Extracting `Data` field from the input bytes
     /// - returns `Id`, `Kind`, `Size` & `Bytes` following by the `Size`
     /// - call this method multiple times, until the end of message
-    fn parse(&mut self, bytes: Bytes) -> Result<(FieldId, MessageKind, FieldSize, Bytes), StrErr> {
+    fn parse(&mut self, bytes: Bytes) -> Result<(FieldId, MessageKind, FieldSize, Bytes), Error> {
+        let error = Error::new(&self.dbg, "parse");
         let bytes = [std::mem::take(&mut self.remains), bytes].concat();
         match self.field.parse(bytes) {
             Ok((id, kind, size, bytes)) => {
@@ -37,7 +39,7 @@ impl MessageParse<(FieldId, MessageKind, FieldSize, Bytes)> for ParseData {
                 match bytes.get(..size.size()) {
                     Some(data_bytes) => {
                         let dbg_bytes = if data_bytes.len() > 16 {format!("{:?}...", &data_bytes[..16])} else {format!("{:?}", data_bytes)};
-                        log::trace!("{}.parse | data_bytes: {:?}", self.dbgid, dbg_bytes);
+                        log::trace!("{}.parse | data_bytes: {:?}", self.dbg, dbg_bytes);
                         if let Some(bytes) = bytes.get(size.size()..) {
                             self.remains.extend_from_slice(bytes);
                         }
@@ -46,11 +48,11 @@ impl MessageParse<(FieldId, MessageKind, FieldSize, Bytes)> for ParseData {
                     }
                     None => {
                         self.buffer.extend_from_slice(&bytes);
-                        Err(format!("{}.parse | Take error", self.dbgid).into())
+                        Err(error.err("Take error"))
                     }
                 }
             }
-            Err(err) => Err(format!("{}.parse | Error: {:?}", self.dbgid, err).into())
+            Err(err) => Err(error.pass(err))
         }
     }
     ///

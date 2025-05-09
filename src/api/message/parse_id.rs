@@ -1,9 +1,9 @@
-use crate::{debug::dbg_id::DbgId, error::str_err::StrErr};
+use sal_core::{dbg::Dbg, error::Error};
 use super::{fields::FieldId, message::{Bytes, MessageParse}};
 ///
 /// Extracting `Id` field from the input bytes
 pub struct ParseId {
-    dbgid: DbgId,
+    dbg: Dbg,
     conf: FieldId,
     field: Box<dyn MessageParse<Bytes>>,
     value: Option<FieldId>,
@@ -14,9 +14,9 @@ pub struct ParseId {
 impl ParseId {
     ///
     /// Returns [ParseId] new instance
-    pub fn new(dbgid: &DbgId, conf: FieldId, field: impl MessageParse<Bytes> + 'static) -> Self {
+    pub fn new(parent: impl Into<String>, conf: FieldId, field: impl MessageParse<Bytes> + 'static) -> Self {
         Self {
-            dbgid: DbgId(format!("{}/ParseId", dbgid)),
+            dbg: Dbg::new(parent, "ParseId"),
             conf,
             field: Box::new(field),
             value: None,
@@ -31,7 +31,8 @@ impl MessageParse<(FieldId, Bytes)> for ParseId {
     /// Extracting `Id` field from the input bytes
     /// - returns Id & bytes following by the `Id`
     /// - call this method multiple times, until the end of message
-    fn parse(&mut self, bytes: Bytes) -> Result<(FieldId, Bytes), StrErr> {
+    fn parse(&mut self, bytes: Bytes) -> Result<(FieldId, Bytes), Error> {
+        let error = Error::new(&self.dbg, "parse");
         match self.field.parse(bytes) {
             Ok(bytes) => {
                 let bytes = [std::mem::take(&mut self.buffer), bytes].concat();
@@ -41,7 +42,7 @@ impl MessageParse<(FieldId, Bytes)> for ParseId {
                         match bytes.get(..self.conf.len()) {
                             Some(id_bytes) => {
                                 let dbg_bytes = if id_bytes.len() > 16 {format!("{:?}...", &id_bytes[..16])} else {format!("{:?}", id_bytes)};
-                                log::trace!("{}.parse | id_bytes: {:?}", self.dbgid, dbg_bytes);
+                                log::trace!("{}.parse | id_bytes: {:?}", self.dbg, dbg_bytes);
                                 match id_bytes.try_into() {
                                     Ok(id_bytes) => {
                                         let id= u32::from_be_bytes(id_bytes);
@@ -50,19 +51,19 @@ impl MessageParse<(FieldId, Bytes)> for ParseId {
                                     },
                                     Err(err) => {
                                         self.buffer = id_bytes.into();
-                                        Err(format!("{}.parse | Parse error: {:#?}", self.dbgid, err).into())
+                                        Err(error.pass_with("Parse error", err.to_string()))
                                     }
                                 }
                             }
                             None => {
                                 self.buffer.extend_from_slice(&bytes);
-                                Err(format!("{}.parse | Take error", self.dbgid).into())
+                                Err(error.err("Take error"))
                             }
                         }
                     }
                 }
             }
-            Err(err) => Err(format!("{}.parse | Error: {:?}", self.dbgid, err).into())
+            Err(err) => Err(error.pass(err))
         }
     }
     ///

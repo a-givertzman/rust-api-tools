@@ -1,8 +1,4 @@
-#![allow(non_snake_case)]
-
-use log::{debug, warn};
 use serde::{Serialize, Deserialize};
-
 use crate::error::api_error::ApiError;
 
 ///
@@ -13,20 +9,20 @@ pub struct ApiQueryPython {
 }
 impl ApiQueryPython {
     ///
-    pub fn fromJson(jsonMap: serde_json::Value) -> Result<Self, ApiError> {
+    pub fn from_json(json_map: serde_json::Value) -> Result<Self, ApiError> {
         let key = "script";
-        if let serde_json::Value::String(script) = &jsonMap[key] {
-            debug!("[ApiQueryPython.fromJson] field '{}': {:?}", &key, &script);
+        if let serde_json::Value::String(script) = &json_map[key] {
+            log::trace!("[ApiQueryPython.fromJson] field '{}': {:?}", &key, &script);
             let key = "params";
-            if let serde_json::Value::Object(params) = &jsonMap[key] {
-                debug!("[ApiQueryPython.fromJson] field '{}': {:?}", &key, &params);
+            if let serde_json::Value::Object(params) = &json_map[key] {
+                log::trace!("[ApiQueryPython.fromJson] field '{}': {:?}", &key, &params);
                 return Ok(ApiQueryPython {
                     script: script.to_owned(), 
                     params: params.to_owned(), 
                 });
             } else {
                 let details = format!("[ApiQueryPython.fromJson] field '{}' of type Map not found or invalid content", key);
-                warn!("{}", details);
+                log::warn!("{}", details);
                 return Err(ApiError::new(
                     format!("API Python Script Service - invalid query (near field \"{}\")", key), 
                     details,
@@ -34,7 +30,7 @@ impl ApiQueryPython {
             }
         } else {
             let details = format!("[ApiQueryPython.fromJson] field '{}' of type String not found or invalid content", key);
-            warn!("{}", details);
+            log::warn!("{}", details);
             return Err(ApiError::new(
                 format!("API Python Script Service - invalid query (near field \"{}\")", key), 
                 details,

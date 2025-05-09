@@ -2,9 +2,10 @@
 
 mod message {
     use std::{sync::Once, time::Duration};
+    use sal_core::{dbg::Dbg, error::Error};
     use testing::stuff::max_test_duration::TestDuration;
     use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
-    use crate::{api::message::{fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn}, message::{Bytes, Message, MessageField, MessageParse}, message_kind::MessageKind}, debug::dbg_id::DbgId, error::str_err::StrErr};
+    use crate::api::message::{fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn}, message::{Bytes, Message, MessageField, MessageParse}, message_kind::MessageKind};
     ///
     ///
     static INIT: Once = Once::new();
@@ -27,9 +28,9 @@ mod message {
         init_once();
         init_each();
         log::debug!("");
-        let dbgid = DbgId("test".to_owned());
-        log::debug!("\n{}", dbgid);
-        let test_duration = TestDuration::new(&dbgid, Duration::from_secs(1));
+        let dbg = Dbg::own("message");
+        log::debug!("\n{}", dbg);
+        let test_duration = TestDuration::new(&dbg, Duration::from_secs(1));
         test_duration.run().unwrap();
         let test_data = [
             (
@@ -50,7 +51,7 @@ mod message {
             ),
         ];
         let mut message = Message::new(
-            &dbgid, 
+            &dbg, 
             vec![
                 MessageField::Syn(FieldSyn::default()),
                 MessageField::Id(FieldId(4)),
@@ -61,7 +62,7 @@ mod message {
             FakeParse {},
         );
         for (step, data, id, target) in test_data {
-            log::debug!("{} | step: {},  id: {},  kind: {:?},  size: {},  data: {:?}", dbgid, step, id, target[1], target[6..].len(), data);
+            log::debug!("{} | step: {},  id: {},  kind: {:?},  size: {},  data: {:?}", dbg, step, id, target[1], target[6..].len(), data);
             let result = message.build(data.as_bytes().to_owned().as_mut(), id);
             assert!(result == target, "step: {} \nresult: {:?}\ntarget: {:?}", step, result, target);
         }
@@ -69,7 +70,7 @@ mod message {
     }
     struct FakeParse {}
     impl MessageParse<()> for FakeParse {
-        fn parse(&mut self, _: Bytes) -> Result<(), StrErr> {
+        fn parse(&mut self, _: Bytes) -> Result<(), Error> {
             todo!()
         }
         fn reset(&mut self) {

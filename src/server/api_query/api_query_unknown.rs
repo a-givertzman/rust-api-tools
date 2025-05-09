@@ -1,6 +1,3 @@
-#![allow(non_snake_case)]
-
-// use log::{debug, warn};
 use serde::{Serialize, Deserialize};
 
 ///
@@ -14,7 +11,7 @@ pub struct ApiQueryUnknown {
 impl ApiQueryUnknown {
     ///
     /// 
-    pub fn srcQuery(self) -> serde_json::Value {
+    pub fn src_query(self) -> serde_json::Value {
         self.query
     }
 }

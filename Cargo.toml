@@ -1,7 +1,7 @@
 [package]
 name = "api-tools"
-version = "0.2.0"
-edition = "2021"
+version = "0.2.1"
+edition = "2024"
 #
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 #
@@ -15,6 +15,7 @@ env_logger = "^0.11"
 # date & time
 chrono = "^0.4"
 #
+sal-core = { git = "https://github.com/a-givertzman/rust-sal-core.git", tag = "0.0.3" }
 testing = { git = "https://github.com/a-givertzman/rust-testing.git", tag = "0.1.2" }
 debugging = { git = "https://github.com/a-givertzman/rust-debuging.git", tag = "0.0.1" }
 #

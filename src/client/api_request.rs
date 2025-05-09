@@ -1,13 +1,17 @@
+use sal_core::{dbg::Dbg, error::Error};
 use serde::{ser::SerializeStruct, Serialize, Serializer};
 use std::{net::ToSocketAddrs, time::Duration};
 use crate::{
     api::{
         message::{
-            fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn}, message::MessageField, message_kind::MessageKind, msg_kind, parse_data::ParseData, parse_id::ParseId, parse_kind::ParseKind, parse_size::ParseSize, parse_syn::ParseSyn
+            fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn},
+            message::MessageField, message_kind::MessageKind, msg_kind,
+            parse_data::ParseData, parse_id::ParseId, parse_kind::ParseKind,
+            parse_size::ParseSize, parse_syn::ParseSyn
         },
         socket::tcp_socket::{TcpMessage, TcpSocket},
     },
-    client::api_query::ApiQuery, debug::dbg_id::DbgId, error::str_err::StrErr,
+    client::api_query::ApiQuery,
 };
 ///
 /// - Holding single input queue
@@ -28,7 +32,7 @@ use crate::{
 /// ```
 #[derive(Debug)]
 pub struct ApiRequest {
-    dbgid: DbgId,
+    dbg: Dbg,
     query_id: Id,
     auth_token: String,
     query: ApiQuery,
@@ -43,8 +47,8 @@ impl ApiRequest {
     ///
     /// Creates new instance of [ApiRequest]
     /// - [parent] - the ID if the parent entity
-    pub fn new(dbgid: &DbgId, address: impl ToSocketAddrs + std::fmt::Debug, auth_token: impl Into<String>, query: ApiQuery, keep_alive: bool, debug: bool) -> Self {
-        let dbgid = DbgId(format!("{}/ApiRequest", dbgid));
+    pub fn new(parent: impl Into<String>, address: impl ToSocketAddrs + std::fmt::Debug, auth_token: impl Into<String>, query: ApiQuery, keep_alive: bool, debug: bool) -> Self {
+        let dbgid = Dbg::new(parent, "ApiRequest");
         let address = match address.to_socket_addrs() {
             Ok(mut addr_iter) => match addr_iter.next() {
                 Some(addr) => addr,
@@ -83,7 +87,7 @@ impl ApiRequest {
         );
         Self {
             socket: TcpSocket::new(&dbgid, address, message, None),
-            dbgid,
+            dbg: dbgid,
             query_id: Id::new(),
             auth_token: auth_token.into(),
             query,
@@ -100,43 +104,45 @@ impl ApiRequest {
     }
     ///
     /// Performs an API request with the parameters specified in the constructor
-    pub fn fetch(&mut self, keep_alive: bool) -> Result<Vec<u8>, StrErr> {
+    pub fn fetch(&mut self, keep_alive: bool) -> Result<Vec<u8>, Error> {
         self.fetch_with(&self.query.clone(), keep_alive)
+            .map_err(|err| Error::new(&self.dbg, "fetch").pass(err))
     }
     ///
     /// Performs an API request with passed query and parameters specified in the constructor
-    pub fn fetch_with(&mut self, query: &ApiQuery, keep_alive: bool) -> Result<Vec<u8>, StrErr>{
+    pub fn fetch_with(&mut self, query: &ApiQuery, keep_alive: bool) -> Result<Vec<u8>, Error>{
+        let error = Error::new(&self.dbg, "fetch_with");
         self.query_id.add();
         self.query = query.clone();
         self.keep_alive = keep_alive;
         match serde_json::to_vec(&self) {
             Ok(query) => {
-                log::trace!("{}.fetch | query: {:#?}", self.dbgid, query);
+                log::trace!("{}.fetch | query: {:#?}", self.dbg, query);
                 match self.socket.send(&query, None) {
                     Ok(_id) => {
                         match self.socket.read() {
                             Ok((_id, msg)) => match msg {
                                 msg_kind::MsgKind::Bytes(bytes) =>  Ok(bytes),
                                 _ => {
-                                    let err = format!("{}.fetch | Message kind error, expected Bytes, but found: {:?}", self.dbgid, msg);
+                                    let err = error.err(format!("Wrong Message kind error, expected Bytes, but found: {:?}", msg));
                                     log::warn!("{}", err);
-                                    Err(err.into())
+                                    Err(err)
                                 }
                             }
-                            Err(err) => Err(err),
+                            Err(err) => Err(error.pass(err)),
                         }
                     }
                     Err(err) => {
-                        let err = format!("{}.fetch | Send error: {:?}", self.dbgid, err);
+                        let err = error.pass_with("Send error", err);
                         log::warn!("{}", err);
-                        Err(err.into())
+                        Err(err)
                     }
                 }
             }
             Err(err) => {
-                let err = format!("{}.fetch | Serialize error: {:?}", self.dbgid, err);
+                let err = error.pass_with("Serialize  error", err.to_string());
                 log::warn!("{}", err);
-                Err(err.into())
+                Err(err)
             }
         }
     }

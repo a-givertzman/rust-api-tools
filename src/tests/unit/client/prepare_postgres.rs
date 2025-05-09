@@ -9,7 +9,8 @@ pub struct TestDatabasePostgres {}
 impl TestDatabasePostgres {
     ///
     /// Create user with standard privileges
-    pub fn create_db_user(parent: &str, client: &mut Client, name: &str) -> Result<(), String> {
+    pub fn create_db_user(parent: impl Into<String>, client: &mut Client, name: &str) -> Result<(), String> {
+        let parent = parent.into();
         match client.query(&format!("SELECT 1 FROM pg_user WHERE usename = '{}';", name), &[]) {
             Ok(rows) => {
                 println!("\n rows: {:?}", rows);
@@ -31,8 +32,9 @@ impl TestDatabasePostgres {
     }
     ///
     /// Creates database and user with the same name
-    pub fn create_db(parent: &str, client: &mut Client, name: &str) -> Result<(), String> {
-        Self::create_db_user(parent, client, name)?;
+    pub fn create_db(parent: impl Into<String>, client: &mut Client, name: &str) -> Result<(), String> {
+        let parent = parent.into();
+        Self::create_db_user(&parent, client, name)?;
         let db_name = name;
         let db_user = name;
         match client.query(&format!("SELECT 1 FROM pg_database WHERE datname = '{}';", name), &[]) {
@@ -61,7 +63,7 @@ impl TestDatabasePostgres {
     }
     ///
     /// Creates table
-    pub fn create_db_table(parent: &str, client: &mut Client, database: &str, table: &str) ->Result<(), String> {
+    pub fn create_db_table(parent: impl Into<String>, client: &mut Client, database: &str, table: &str) ->Result<(), String> {
         let sql = [
             format!(r#"
                 CREATE TABLE IF NOT EXISTS {}.public.{} (
@@ -91,14 +93,15 @@ impl TestDatabasePostgres {
             let result = client.batch_execute(&sql);
             println!("\n result: {:?}", result);
             if let Err(err) = result {
-                return Err(format!("{}.create_db_table | Error: {:?}", parent, err));
+                return Err(format!("{}.create_db_table | Error: {:?}", parent.into(), err));
             }
         }
         Ok(())
     }
     ///
     /// Drops database and try to delete user with the same name
-    pub fn drop_db(parent: &str, client: &mut Client, name: &str) -> Result<(), String> {
+    pub fn drop_db(parent: impl Into<String>, client: &mut Client, name: &str) -> Result<(), String> {
+        let parent = parent.into();
         let sql = [
             format!("DROP DATABASE IF EXISTS {};", name),
             format!("DROP USER IF EXISTS {};", name),
@@ -114,7 +117,8 @@ impl TestDatabasePostgres {
     }
     ///
     /// 
-    pub fn connect_db(parent: &str, user: &str, pass: &str, path: &str, name: &str) -> Result<Client, String> {
+    pub fn connect_db(parent: impl Into<String>, user: &str, pass: &str, path: &str, name: &str) -> Result<Client, String> {
+        let parent = parent.into();
         let path = if !user.is_empty() && !pass.is_empty() {
             format!("postgresql://{}:{}@{}/{}", user, pass, path, name)    // postgresql://user:secret@localhost
         } else {
