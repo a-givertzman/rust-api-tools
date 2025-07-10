@@ -15,12 +15,12 @@ env_logger = "^0.11"
 # date & time
 chrono = "^0.4"
 #
-sal-core = { git = "https://github.com/a-givertzman/rust-sal-core.git", tag = "0.0.3" }
+sal-core = { git = "https://github.com/a-givertzman/rust-sal-core.git", tag = "0.1.0" }
 testing = { git = "https://github.com/a-givertzman/rust-testing.git", tag = "0.1.2" }
 debugging = { git = "https://github.com/a-givertzman/rust-debuging.git", tag = "0.0.1" }
 #
 # Collections
-indexmap = {version = "^2.1", features = ["serde"] }
+indexmap = {version = "^2.10", features = ["serde"] }
 #
 # Serde
 serde = { version = "^1.0", features = ["derive"] }
