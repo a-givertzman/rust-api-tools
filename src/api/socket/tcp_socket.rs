@@ -112,7 +112,7 @@ impl TcpSocket {
     ///
     /// Closes a connection
     pub fn close(&mut self) -> Result<(), Error> {
-        match &self.connection {
+        match &self.connection.take() {
             Some(stream) => {
                 stream
                     .shutdown(Shutdown::Both)
