@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 use crate::error::api_error::ApiError;
 
 ///
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ApiReply {
     #[serde(rename = "authToken")]
     pub auth_token: String,
@@ -29,17 +29,17 @@ impl ApiReply {
     ///
     /// Creates ApiReply without error information
     pub fn new(
-        auth_token: String,
-        id: String,
+        auth_token: impl Into<String>,
+        id: impl Into<String>,
         keep_alive: bool,
-        query: String, 
+        query: impl Into<String>, 
         data: Vec<IndexMap<String, serde_json::Value>>,
     ) -> Self {
         ApiReply {
-            auth_token,
-            id,
+            auth_token: auth_token.into(),
+            id: id.into(),
             keep_alive,
-            query,
+            query: query.into(),
             data,
             error: ApiError::empty(),
         }        
@@ -47,17 +47,17 @@ impl ApiReply {
     ///
     /// Creates ApiReply with error information only
     pub fn error(
-        auth_token: String,
-        id: String,
+        auth_token: impl Into<String>,
+        id: impl Into<String>,
         keep_alive: bool,
-        query: String, 
+        query: impl Into<String>, 
         error: ApiError,
     ) -> Self {
         ApiReply {
-            auth_token,
-            id,
+            auth_token: auth_token.into(),
+            id: id.into(),
             keep_alive,
-            query,
+            query: query.into(),
             data: vec![],
             error,
         }        
