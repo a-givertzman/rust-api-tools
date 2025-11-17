@@ -4,7 +4,7 @@ mod tests {
     use log::{debug, info};
     use std::{collections::HashMap, sync::Once};
     use serde_json::json;
-    use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
+    use debugging::session::debug_session::{DebugSession, LogLevel};
     use crate::client::api_query::{ApiQuery, ApiQueryExecutable, ApiQueryKind, ApiQueryPython, ApiQuerySql};
     
     // Note this useful idiom: importing names from outer (for mod tests) scope.
@@ -31,7 +31,7 @@ mod tests {
     
     #[test]
     fn test_api_query() {
-        DebugSession::init(LogLevel::Debug, Backtrace::Short);
+        DebugSession::new().filter(LogLevel::Debug).init();
         init_once();
         init_each();
         println!("");

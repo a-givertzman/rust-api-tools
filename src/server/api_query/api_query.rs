@@ -54,7 +54,7 @@ impl ApiQuery {
     ///
     /// Returns `ApiQuery` parsing query of type `ApiQueryType::Sql`
     fn parse_api_query_sql(src_query: &str, json: serde_json::Value, auth_token: String, id: String, keep_alive: bool, debug: bool) -> ApiQuery {
-        log::debug!("[ApiQuery.parseApiQuerySql] detected: {}", ApiQueryTypeName::Sql.value());
+        log::trace!("ApiQuery.parseApiQuerySql | detected: {}", ApiQueryTypeName::Sql.value());
         match ApiQuerySql::from_json(json[ApiQueryTypeName::Sql.value()].clone()) {
             Ok(api_query_sql) => {
                 ApiQuery::new(
@@ -81,7 +81,7 @@ impl ApiQuery {
     ///
     /// Returns `ApiQuery` parsing query of type `ApiQueryType::Python`
     fn parse_api_query_python(src_query: &str, json: serde_json::Value, auth_token: String, id: String, keep_alive: bool, debug: bool) -> ApiQuery {
-        log::debug!("ApiQuery.fromBytes | detected: {}", ApiQueryTypeName::Python.value());
+        log::trace!("ApiQuery.fromBytes | detected: {}", ApiQueryTypeName::Python.value());
         match ApiQueryPython::from_json(json[ApiQueryTypeName::Python.value()].clone()) {
             Ok(api_query_python) => {
                 ApiQuery::new(
@@ -108,7 +108,7 @@ impl ApiQuery {
     ///
     /// Returns `ApiQuery` parsing query of type `ApiQueryType::Executable`
     fn parse_api_query_executable(src_query: &str, json: serde_json::Value, auth_token: String, id: String, keep_alive: bool, debug: bool) -> ApiQuery {
-        log::debug!("ApiQuery.fromBytes | detected: {}", ApiQueryTypeName::Executable.value());
+        log::trace!("ApiQuery.fromBytes | detected: {}", ApiQueryTypeName::Executable.value());
         match ApiQueryExecutable::from_json(json[ApiQueryTypeName::Executable.value()].clone()) {
             Ok(api_query_executable) => {
                 ApiQuery::new(
@@ -186,14 +186,14 @@ impl ApiQuery {
                         };
                         match query_map.get_value("keepAlive") {
                             Ok(value) => {
-                                log::debug!("ApiQuery.fromBytes | keep-alive detected");
+                                log::trace!("ApiQuery.fromBytes | keep-alive detected");
                                 keep_alive = value;
                             },
                             Err(_) => {},
                         };
                         match query_map.get_value("debug") {
                             Ok(value) => {
-                                log::debug!("ApiQuery.fromBytes | debug detected");
+                                log::trace!("ApiQuery.fromBytes | debug detected");
                                 debug = value;
                             },
                             Err(_) => debug = false,

@@ -4,7 +4,7 @@
 mod tests {
     use log::{warn, info, debug};
     use std::{sync::Once, time::{Duration, Instant}};
-    use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
+    use debugging::session::debug_session::{DebugSession, LogLevel};
     use testing::stuff::max_test_duration::TestDuration;
     use crate::error::api_error::ApiError; 
     
@@ -32,7 +32,7 @@ mod tests {
     
     #[test]
     fn test_api_error() {
-        DebugSession::init(LogLevel::Debug, Backtrace::Short);
+        DebugSession::new().filter(LogLevel::Debug).init();
         init_once();
         init_each();
         println!("");

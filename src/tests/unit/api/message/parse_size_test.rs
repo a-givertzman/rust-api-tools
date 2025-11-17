@@ -4,7 +4,7 @@ mod parse_size {
     use std::{sync::Once, time::Duration};
     use sal_core::dbg::Dbg;
     use testing::stuff::max_test_duration::TestDuration;
-    use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
+    use debugging::session::debug_session::{DebugSession, LogLevel};
     use crate::api::message::{fields::{FieldId, FieldKind, FieldSize, FieldSyn}, message::MessageParse, message_kind::MessageKind, parse_id::ParseId, parse_kind::ParseKind, parse_size::ParseSize, parse_syn::ParseSyn};
     ///
     ///
@@ -24,7 +24,7 @@ mod parse_size {
     /// Testing [ParseSyn.parse]
     #[test]
     fn parse() {
-        DebugSession::init(LogLevel::Debug, Backtrace::Short);
+        DebugSession::new().filter(LogLevel::Debug).init();
         init_once();
         init_each();
         log::debug!("");

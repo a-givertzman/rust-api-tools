@@ -2,7 +2,7 @@
 
 mod tcp_socket {
     use std::{io::{Read, Write}, net::TcpListener, sync::{atomic::{AtomicBool, AtomicUsize, Ordering}, Arc, Once}, thread, time::Duration};
-    use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
+    use debugging::session::debug_session::{DebugSession, LogLevel};
     use sal_core::{dbg::Dbg, error::Error};
     use testing::{session::{teardown::Teardown, test_session::TestSession}, stuff::max_test_duration::TestDuration};
     use crate::api::{
@@ -35,7 +35,7 @@ mod tcp_socket {
     /// Testing TcpSocket messaging
     #[test]
     fn read_write() {
-        DebugSession::init(LogLevel::Debug, Backtrace::Short);
+        DebugSession::new().filter(LogLevel::Debug).init();
         init_once();
         init_each();
         println!("");

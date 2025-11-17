@@ -4,7 +4,7 @@ mod socket_close {
     use std::{io::{BufReader, Read}, net::{TcpListener, TcpStream}, sync::{atomic::{AtomicBool, Ordering}, Arc, Once}, thread, time::{Duration, Instant}};
     use sal_core::{dbg::Dbg, error::Error};
     use testing::{session::test_session::TestSession, stuff::max_test_duration::TestDuration};
-    use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
+    use debugging::session::debug_session::{DebugSession, LogLevel};
     use crate::api::{message::{fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn}, message::MessageField, message_kind::MessageKind, parse_data::ParseData, parse_id::ParseId, parse_kind::ParseKind, parse_size::ParseSize, parse_syn::ParseSyn}, socket::tcp_socket::{TcpMessage, TcpSocket}};
     ///
     /// inline increment
@@ -36,7 +36,7 @@ mod socket_close {
     /// - research test
     #[test]
     fn tcp_stream_close() {
-        DebugSession::init(LogLevel::Debug, Backtrace::Short);
+        DebugSession::new().filter(LogLevel::Debug).init();
         init_once();
         init_each();
         let dbg = Dbg::own("socket_close");
@@ -163,7 +163,7 @@ mod socket_close {
     /// - research test
     #[test]
     fn tcp_socket_close() {
-        DebugSession::init(LogLevel::Debug, Backtrace::Short);
+        DebugSession::new().filter(LogLevel::Debug).init();
         init_once();
         init_each();
         let dbg = Dbg::own("socket_close");

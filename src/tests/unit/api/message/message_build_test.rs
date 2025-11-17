@@ -4,7 +4,7 @@ mod message {
     use std::{sync::Once, time::Duration};
     use sal_core::{dbg::Dbg, error::Error};
     use testing::stuff::max_test_duration::TestDuration;
-    use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
+    use debugging::session::debug_session::{DebugSession, LogLevel};
     use crate::api::message::{fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn}, message::{Bytes, Message, MessageField, MessageParse}, message_kind::MessageKind};
     ///
     ///
@@ -24,7 +24,7 @@ mod message {
     /// Testing [Message].build
     #[test]
     fn build() {
-        DebugSession::init(LogLevel::Debug, Backtrace::Short);
+        DebugSession::new().filter(LogLevel::Debug).init();
         init_once();
         init_each();
         log::debug!("");

@@ -4,7 +4,7 @@ mod api_request {
     use std::{collections::HashMap, process::Command, sync::{atomic::AtomicUsize, Once}, thread, time::{Duration, Instant}};
     use sal_core::dbg::Dbg;
     use serde_json::json;
-    use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
+    use debugging::session::debug_session::{DebugSession, LogLevel};
     use testing::{session::teardown::Teardown, stuff::max_test_duration::TestDuration};
     use crate::{
         api::reply::api_reply::ApiReply, client::{api_query::{ApiQuery, ApiQueryExecutable, ApiQueryKind, ApiQueryPython, ApiQuerySql}, api_request::ApiRequest},
@@ -74,7 +74,7 @@ mod api_request {
     /// 
     #[test]
     fn debug_false() {
-        DebugSession::init(LogLevel::Debug, Backtrace::Short);
+        DebugSession::new().filter(LogLevel::Debug).init();
         init_each();
         println!("");
         let dbg = Dbg::own("test ApiRequest");
@@ -164,7 +164,7 @@ mod api_request {
     /// 
     #[test]
     fn debug_true() {
-        DebugSession::init(LogLevel::Debug, Backtrace::Short);
+        DebugSession::new().filter(LogLevel::Debug).init();
         init_each();
         println!("");
         let dbg = Dbg::own("test ApiRequest");
@@ -252,7 +252,7 @@ mod api_request {
     /// ApiRequest performance test
     #[test]
     fn performance() {
-        DebugSession::init(LogLevel::Debug, Backtrace::Short);
+        DebugSession::new().filter(LogLevel::Debug).init();
         init_each();
         println!("");
         let dbg = Dbg::own("test ApiRequest");

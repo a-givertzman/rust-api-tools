@@ -4,7 +4,7 @@ mod socket_timeout {
     use std::{io::{BufReader, Read}, net::{Shutdown, TcpListener, TcpStream}, sync::{Arc, Once}, time::{Duration, Instant}};
     use sal_core::{dbg::Dbg, error::Error};
     use testing::stuff::max_test_duration::TestDuration;
-    use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
+    use debugging::session::debug_session::{DebugSession, LogLevel};
     ///
     /// inline increment
     trait Inc<T> {
@@ -35,7 +35,7 @@ mod socket_timeout {
     /// - research test
     #[test]
     fn read_timeout() {
-        DebugSession::init(LogLevel::Debug, Backtrace::Short);
+        DebugSession::new().filter(LogLevel::Debug).init();
         init_once();
         init_each();
         let dbg = Dbg::own("socket_timeout");

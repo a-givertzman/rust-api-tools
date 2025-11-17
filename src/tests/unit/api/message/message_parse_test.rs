@@ -4,7 +4,7 @@ mod message {
     use std::{sync::Once, time::Duration};
     use sal_core::dbg::Dbg;
     use testing::stuff::max_test_duration::TestDuration;
-    use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
+    use debugging::session::debug_session::{DebugSession, LogLevel};
     use crate::api::message::{fields::{FieldData, FieldId, FieldKind, FieldSize, FieldSyn}, message::{Message, MessageField, MessageParse}, message_kind::MessageKind, parse_data::ParseData, parse_id::ParseId, parse_kind::ParseKind, parse_size::ParseSize, parse_syn::ParseSyn};
     ///
     ///
@@ -24,7 +24,7 @@ mod message {
     /// Testing [Message].parse
     #[test]
     fn parse() {
-        DebugSession::init(LogLevel::Debug, Backtrace::Short);
+        DebugSession::new().filter(LogLevel::Debug).init();
         init_once();
         init_each();
         log::debug!("");
@@ -135,7 +135,7 @@ mod message {
     /// Testing such `Message.parse`
     #[test]
     fn parse_advanced() {
-        DebugSession::init(LogLevel::Debug, Backtrace::Short);
+        DebugSession::new().filter(LogLevel::Debug).init();
         init_once();
         init_each();
         log::debug!("");

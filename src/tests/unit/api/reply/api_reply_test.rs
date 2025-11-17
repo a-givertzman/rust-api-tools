@@ -3,7 +3,7 @@
 mod api_reply {
     use std::{sync::Once, time::Duration};
     use serde_json::json;
-    use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
+    use debugging::session::debug_session::{DebugSession, LogLevel};
     use testing::stuff::max_test_duration::TestDuration;
     use crate::
         api::reply::api_reply::ApiReply
@@ -27,7 +27,7 @@ mod api_reply {
     /// 
     #[test]
     fn serialize() {
-        DebugSession::init(LogLevel::Debug, Backtrace::Short);
+        DebugSession::new().filter(LogLevel::Debug).init();
         init_once();
         init_each();
         println!("");
@@ -86,7 +86,7 @@ mod api_reply {
     /// 
     #[test]
     fn deserialize() {
-        DebugSession::init(LogLevel::Debug, Backtrace::Short);
+        DebugSession::new().filter(LogLevel::Debug).init();
         init_once();
         init_each();
         println!("");

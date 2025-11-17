@@ -3,7 +3,7 @@
 mod vec_concat {
     use std::{sync::Once, time::{Duration, Instant}};
     use testing::stuff::max_test_duration::TestDuration;
-    use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
+    use debugging::session::debug_session::{DebugSession, LogLevel};
     ///
     ///
     static INIT: Once = Once::new();
@@ -23,7 +23,7 @@ mod vec_concat {
     #[test]
     #[ignore = "Performance test ignored"]
     fn parse() {
-        DebugSession::init(LogLevel::Debug, Backtrace::Short);
+        DebugSession::new().filter(LogLevel::Debug).init();
         init_once();
         init_each();
         log::debug!("");

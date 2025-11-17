@@ -4,7 +4,7 @@
 mod tests {
     use log::{info, debug, warn};
     use std::sync::Once;
-    use debugging::session::debug_session::{DebugSession, LogLevel, Backtrace};
+    use debugging::session::debug_session::{DebugSession, LogLevel};
 
     use crate::{
         error::api_error::ApiError,
@@ -51,7 +51,7 @@ mod tests {
 
     #[test]
     fn test_api_query_from_bytes() {
-        DebugSession::init(LogLevel::Debug, Backtrace::Short);
+        DebugSession::new().filter(LogLevel::Debug).init();
         init_once();
         init_each();
         println!("");
