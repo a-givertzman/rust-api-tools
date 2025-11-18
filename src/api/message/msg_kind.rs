@@ -17,6 +17,7 @@ use super::message::Bytes;
 ///     - 26, Int64
 ///     - 32, F32
 ///     - 33, F64
+///     - 38, Json
 ///     - 40, String
 ///     - 48, Timestamp
 ///     - 49, Duration
@@ -24,20 +25,21 @@ use super::message::Bytes;
 #[derive(Debug, Clone, PartialEq)]
 pub enum MsgKind {
     Any(Bytes),
-    Empty,
-    Bytes(Bytes),
     Bool(bool),
-    U16(u16),
-    U32(u32),
-    U64(u64),
+    Bytes(Bytes),
+    Duration(Duration),
+    Empty,
+    F32(f32),
+    F64(f64),
     I16(i16),
     I32(i32),
     I64(i64),
-    F32(f32),
-    F64(f64),
+    Json(String),
     String(String),
     Timestamp(DateTime<chrono::Utc>),
-    Duration(Duration),
+    U16(u16),
+    U32(u32),
+    U64(u64),
 }
 //
 //
@@ -54,20 +56,21 @@ impl MsgKind {
     pub fn to_be_bytes<'a>(&'a self) -> Vec<u8> {
         match self {
             MsgKind::Any(value) => value.to_vec(),
-            MsgKind::Empty => Vec::new(),
-            MsgKind::Bytes(value) => value.to_vec(),
             MsgKind::Bool(value) => if *value {vec![1]} else {vec![0]},
-            MsgKind::U16(value) => value.to_be_bytes().to_vec(),
-            MsgKind::U32(value) => value.to_be_bytes().to_vec(),
-            MsgKind::U64(value) => value.to_be_bytes().to_vec(),
+            MsgKind::Bytes(value) => value.to_vec(),
+            MsgKind::Duration(value) => value.as_secs_f64().to_be_bytes().to_vec(),
+            MsgKind::Empty => Vec::new(),
+            MsgKind::F32(value) => value.to_be_bytes().to_vec(),
+            MsgKind::F64(value) => value.to_be_bytes().to_vec(),
             MsgKind::I16(value) => value.to_be_bytes().to_vec(),
             MsgKind::I32(value) => value.to_be_bytes().to_vec(),
             MsgKind::I64(value) => value.to_be_bytes().to_vec(),
-            MsgKind::F32(value) => value.to_be_bytes().to_vec(),
-            MsgKind::F64(value) => value.to_be_bytes().to_vec(),
             MsgKind::String(value) => value.as_bytes().to_vec(),
+            MsgKind::Json(value) => value.as_bytes().to_vec(),
             MsgKind::Timestamp(value) => value.timestamp_micros().to_be_bytes().to_vec(),
-            MsgKind::Duration(value) => value.as_secs_f64().to_be_bytes().to_vec(),
+            MsgKind::U16(value) => value.to_be_bytes().to_vec(),
+            MsgKind::U32(value) => value.to_be_bytes().to_vec(),
+            MsgKind::U64(value) => value.to_be_bytes().to_vec(),
         }
     }
 }

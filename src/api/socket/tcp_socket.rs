@@ -184,6 +184,10 @@ impl TcpSocket {
                                         MessageKind::I64 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbg, kind),
                                         MessageKind::F32 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbg, kind),
                                         MessageKind::F64 => log::warn!("{} | Message of kind '{:?}' - is not implemented yet", self.dbg, kind),
+                                        MessageKind::Json => match String::from_utf8(bytes) {
+                                            Ok(value) => return Ok((id.clone(), MsgKind::Json(value))),
+                                            Err(err) => return Err(format!("{}.read | Message::json parse error: {}", self.dbg, err).into()),
+                                        },
                                         MessageKind::String => match String::from_utf8(bytes) {
                                             Ok(value) => return Ok((id.clone(), MsgKind::String(value))),
                                             Err(err) => return Err(format!("{}.read | Message::string parse error: {}", self.dbg, err).into()),
