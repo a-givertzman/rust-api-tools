@@ -1,6 +1,6 @@
 [package]
 name = "api-tools"
-version = "0.2.2"
+version = "0.2.3"
 edition = "2024"
 #
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -20,7 +20,7 @@ testing = { git = "https://github.com/a-givertzman/rust-testing.git", tag = "0.1
 debugging = { git = "https://github.com/a-givertzman/rust-debuging.git", tag = "0.1.0" }
 #
 # Collections
-indexmap = {version = "^2.12", features = ["serde"] }
+indexmap = {version = "^2.14", features = ["serde"] }
 #
 # Serde
 serde = { version = "^1.0", features = ["derive"] }
