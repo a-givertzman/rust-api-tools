@@ -15,7 +15,7 @@ pub struct ParseKind {
 impl ParseKind {
     ///
     /// Returns [ParseKind] new instance
-    pub fn new(parent: impl Into<String>, conf: FieldKind, field: impl MessageParse<(FieldId, Bytes)> + 'static) -> Self {
+    pub fn new(parent: impl AsRef<str>, conf: FieldKind, field: impl MessageParse<(FieldId, Bytes)> + 'static) -> Self {
         Self {
             dbg: Dbg::new(parent, "ParseKind"),
             conf,

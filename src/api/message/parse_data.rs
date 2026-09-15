@@ -14,7 +14,7 @@ pub struct ParseData {
 impl ParseData {
     ///
     /// Returns [ParseData] new instance
-    pub fn new(parent: impl Into<String>, field: impl MessageParse<(FieldId, MessageKind, FieldSize, Bytes)> + 'static) -> Self {
+    pub fn new(parent: impl AsRef<str>, field: impl MessageParse<(FieldId, MessageKind, FieldSize, Bytes)> + 'static) -> Self {
         Self {
             dbg: Dbg::new(parent, "ParseData"),
             field: Box::new(field),

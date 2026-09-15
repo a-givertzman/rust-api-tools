@@ -15,7 +15,7 @@ pub struct ParseSize {
 impl ParseSize {
     ///
     /// Returns [ParseSize] new instance
-    pub fn new(parent: impl Into<String>, conf: FieldSize, field: impl MessageParse<(FieldId, MessageKind, Bytes)> + 'static) -> Self {
+    pub fn new(parent: impl AsRef<str>, conf: FieldSize, field: impl MessageParse<(FieldId, MessageKind, Bytes)> + 'static) -> Self {
         Self {
             dbg: Dbg::new(parent, "ParseSize"),
             conf,

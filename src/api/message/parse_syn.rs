@@ -13,7 +13,7 @@ pub struct ParseSyn {
 impl ParseSyn {
     ///
     /// Returns [ParseSyn] new instance
-    pub fn new(parent: impl Into<String>, conf: FieldSyn) -> Self {
+    pub fn new(parent: impl AsRef<str>, conf: FieldSyn) -> Self {
         Self {
             dbg: Dbg::new(parent, "ParseSyn"),
             conf,
@@ -55,6 +55,6 @@ impl MessageParse<Vec<u8>> for ParseSyn {
     ///
     /// Resets state to the initial
     fn reset(&mut self) {
-        self.value = None;        
+        self.value = None;
     }
 }

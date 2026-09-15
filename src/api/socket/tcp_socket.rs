@@ -2,7 +2,7 @@ use std::{io::{BufReader, BufWriter, Read, Write}, net::{Shutdown, SocketAddr, T
 use sal_core::{dbg::Dbg, error::Error};
 use crate::api::message::{fields::{FieldId, FieldSize}, message::{Bytes, Message, MessageParse}, message_kind::MessageKind, msg_kind::MsgKind};
 ///
-/// 
+///
 pub type TcpMessage = Message<(FieldId, MessageKind, FieldSize, Bytes)>;
 ///
 /// Connection status
@@ -46,8 +46,8 @@ impl TcpSocket {
     /// - `address` - TCP address of the remote host to be connected
     /// - `message` - [TcpMessage] provides `build` and `parse`
     /// - `stream` - TcpStream if already connected,
-    ///    - If None specified, connection will be opened internally only when required 
-    pub fn new(parent: impl Into<String>, address: impl ToSocketAddrs + std::fmt::Debug, message: TcpMessage, stream: Option<Arc<TcpStream>>) -> Self {
+    ///    - If None specified, connection will be opened internally only when required
+    pub fn new(parent: impl AsRef<str>, address: impl ToSocketAddrs + std::fmt::Debug, message: TcpMessage, stream: Option<Arc<TcpStream>>) -> Self {
         let dbg = Dbg::new(parent, "TcpSocket");
         let address = match address.to_socket_addrs() {
             Ok(mut addrs) => match addrs.next() {

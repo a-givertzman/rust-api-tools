@@ -47,7 +47,7 @@ impl ApiRequest {
     ///
     /// Creates new instance of [ApiRequest]
     /// - [parent] - the ID if the parent entity
-    pub fn new(parent: impl Into<String>, address: impl ToSocketAddrs + std::fmt::Debug, auth_token: impl Into<String>, query: ApiQuery, keep_alive: bool, debug: bool) -> Self {
+    pub fn new(parent: impl AsRef<str>, address: impl ToSocketAddrs + std::fmt::Debug, auth_token: impl Into<String>, query: ApiQuery, keep_alive: bool, debug: bool) -> Self {
         let dbgid = Dbg::new(parent, "ApiRequest");
         let address = match address.to_socket_addrs() {
             Ok(mut addr_iter) => match addr_iter.next() {
@@ -173,7 +173,7 @@ impl Serialize for ApiRequest {
     }
 }
 ///
-/// 
+///
 #[derive(Debug)]
 struct Id {
     value: usize,
